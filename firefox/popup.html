@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<title>SN Assignflow</title>
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+
+<div class="card">
+  <div class="card-mark">
+    <!-- Distribution fork: one input, two outputs -->
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="4.5" cy="12" r="2.4" fill="#fff" stroke="none"/>
+      <path d="M7.4 12h3.1"/>
+      <path d="M10.5 12 17.2 5.3"/>
+      <path d="M10.5 12 17.2 18.7"/>
+      <path d="M13.6 5.3h3.6v3.6"/>
+      <path d="M13.6 18.7h3.6v-3.6"/>
+    </svg>
+  </div>
+  <div>
+    <div class="card-name">SN Assignflow</div>
+    <div class="card-ver" id="cardVer">v4.0.0</div>
+  </div>
+</div>
+
+<button id="btnLaunch">
+  <svg id="launchIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M8 5.2v13.6L19 12z"/>
+  </svg>
+  <span id="launchLabel">Launch Widget</span>
+</button>
+
+<div id="status">Opens the dispatcher on the active ServiceNow tab.</div>
+
+<div class="summary">
+  <div class="summary-cell">
+    <div class="summary-val" id="sumGroups">0</div>
+    <div class="summary-lbl">Groups</div>
+  </div>
+  <div class="summary-cell">
+    <div class="summary-val" id="sumAgents">0</div>
+    <div class="summary-lbl">Agents</div>
+  </div>
+  <div class="summary-cell">
+    <div class="summary-val" id="sumTotal">0</div>
+    <div class="summary-lbl">Assigned</div>
+  </div>
+</div>
+
+<div class="rule" style="margin-top:12px"></div>
+
+<button id="btnConfig">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" aria-hidden="true">
+    <path d="M4 7h9"/><path d="M19 7h1"/>
+    <path d="M4 17h1"/><path d="M11 17h9"/>
+    <circle cx="16" cy="7" r="2.3"/><circle cx="8" cy="17" r="2.3"/>
+  </svg>
+  <span>Open Configuration</span>
+</button>
+
+<script src="shared.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>

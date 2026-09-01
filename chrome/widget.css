@@ -1,0 +1,386 @@
+/* SN Assignflow — on-page dispatcher widget
+ *
+ * Every rule is scoped under #snaf-widget. ServiceNow ships broad global CSS,
+ * so the container resets inherited typography for its whole subtree and each
+ * selector carries the ID for specificity.
+ *
+ * The widget stays ink-dark on every instance: it has to be legible as an
+ * overlay tool against both UI16 and the Now Experience shells, and reading as
+ * "not part of the page" is the point.
+ */
+
+#snaf-widget {
+  position: fixed;
+  bottom: 22px;
+  right: 22px;
+  z-index: 2147483600;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+  font-size: 12px;
+  color: #EDE9FE;
+  user-select: none;
+  text-align: left;
+  direction: ltr;
+}
+
+#snaf-widget *,
+#snaf-widget *::before,
+#snaf-widget *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+  float: none;
+  line-height: 1.35;
+}
+
+#snaf-widget button {
+  font-family: inherit;
+  font-size: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+}
+#snaf-widget select {
+  font-family: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+}
+#snaf-widget svg { display: block; flex-shrink: 0; }
+
+/* ── Collapsed pill ──────────────────────────────────────────────────────── */
+#snaf-pill {
+  display: none;
+  align-items: center;
+  gap: 9px;
+  background: #1E1B4B;
+  border: 1px solid #332D6E;
+  border-radius: 10px;
+  padding: 9px 13px;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(15, 12, 45, 0.42);
+  min-width: 158px;
+  transition: border-color 120ms ease;
+}
+#snaf-pill.is-open { display: flex; }
+#snaf-pill:hover { border-color: #4C4494; }
+
+#snaf-pill-mark {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: #7C3AED;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+#snaf-pill-mark svg { width: 11px; height: 11px; }
+
+#snaf-pill-text { flex: 1; min-width: 0; }
+#snaf-pill-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #F5F3FF;
+  white-space: nowrap;
+}
+#snaf-pill-state {
+  font-size: 10px;
+  color: #9E98CE;
+  margin-top: 1px;
+  white-space: nowrap;
+}
+#snaf-pill-timer {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #A78BFA;
+  font-variant-numeric: tabular-nums;
+  min-width: 34px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Panel ───────────────────────────────────────────────────────────────── */
+#snaf-panel {
+  display: none;
+  flex-direction: column;
+  width: 320px;
+  background: #1B1740;
+  border: 1px solid #332D6E;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(15, 12, 45, 0.55);
+  overflow: hidden;
+}
+#snaf-panel.is-open { display: flex; }
+
+/* Header — the drag handle. Buttons inside opt out of dragging. */
+#snaf-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #211C4C;
+  border-bottom: 1px solid #2E2865;
+  padding: 11px 12px;
+  cursor: grab;
+}
+#snaf-head.is-dragging { cursor: grabbing; }
+
+#snaf-head-mark {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: #7C3AED;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+#snaf-head-mark svg { width: 14px; height: 14px; }
+
+#snaf-head-text { flex: 1; min-width: 0; }
+#snaf-head-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #F5F3FF;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+#snaf-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #756FA6;
+  flex-shrink: 0;
+}
+#snaf-dot.running { background: #4ADE80; }
+#snaf-dot.paused  { background: #FBBF24; }
+#snaf-head-state {
+  font-size: 10.5px;
+  color: #9E98CE;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#snaf-head-btns { display: flex; align-items: center; gap: 2px; flex-shrink: 0; cursor: default; }
+.snaf-hbtn {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  color: #9E98CE;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.snaf-hbtn svg { width: 14px; height: 14px; }
+.snaf-hbtn:hover { background: #322B72; color: #F5F3FF; }
+.snaf-hbtn.close:hover { background: rgba(248, 113, 113, 0.16); color: #FCA5A5; }
+
+/* ── Stats ───────────────────────────────────────────────────────────────── */
+#snaf-stats {
+  display: flex;
+  border-bottom: 1px solid #2E2865;
+  padding: 11px 12px;
+}
+.snaf-stat { flex: 1; text-align: center; min-width: 0; }
+.snaf-stat + .snaf-stat { border-left: 1px solid #2E2865; }
+.snaf-stat-val {
+  font-size: 16px;
+  font-weight: 600;
+  color: #A78BFA;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+.snaf-stat-lbl {
+  font-size: 8.5px;
+  color: #7C74AD;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 3px;
+}
+
+/* ── Countdown ───────────────────────────────────────────────────────────── */
+#snaf-timer-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-bottom: 1px solid #2E2865;
+}
+#snaf-timer-lbl { font-size: 10px; color: #7C74AD; white-space: nowrap; flex-shrink: 0; }
+#snaf-timer-track {
+  flex: 1;
+  height: 3px;
+  background: #2E2865;
+  border-radius: 2px;
+  overflow: hidden;
+}
+#snaf-timer-fill {
+  height: 100%;
+  width: 100%;
+  background: #7C3AED;
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+#snaf-timer-val {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #A78BFA;
+  font-variant-numeric: tabular-nums;
+  min-width: 34px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Selects ─────────────────────────────────────────────────────────────── */
+#snaf-scope-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border-bottom: 1px solid #2E2865;
+}
+#snaf-scope-lbl {
+  font-size: 10px;
+  color: #7C74AD;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+.snaf-select {
+  background: #171339;
+  border: 1px solid #3B3479;
+  border-radius: 5px;
+  color: #EDE9FE;
+  font-size: 11px;
+  padding: 5px 22px 5px 8px;
+  outline: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%239E98CE'%3E%3Cpath d='M4.2 6.1a.75.75 0 0 1 1.06 0L8 8.84l2.74-2.74a.75.75 0 1 1 1.06 1.06L8.53 12.4a.75.75 0 0 1-1.06 0L4.2 7.16a.75.75 0 0 1 0-1.06z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 5px center;
+  background-size: 13px;
+  transition: border-color 120ms ease;
+}
+.snaf-select:focus { border-color: #7C3AED; }
+#snaf-scope { flex: 1; min-width: 0; }
+
+/* ── Controls ────────────────────────────────────────────────────────────── */
+#snaf-controls {
+  display: flex;
+  gap: 7px;
+  padding: 11px 12px;
+  border-bottom: 1px solid #2E2865;
+}
+.snaf-btn {
+  flex: 1;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 8px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color 120ms ease, border-color 120ms ease;
+  border: 1px solid transparent;
+}
+.snaf-btn svg { width: 12px; height: 12px; }
+.snaf-btn-start { background: #7C3AED; color: #fff; }
+.snaf-btn-start:hover { background: #8B5CF6; }
+.snaf-btn-pause { background: #211C4C; color: #E6E1FB; border-color: #3B3479; }
+.snaf-btn-pause:hover { border-color: #7C3AED; }
+.snaf-btn-stop { background: #211C4C; color: #FCA5A5; border-color: #3B3479; }
+.snaf-btn-stop:hover { border-color: #F87171; background: rgba(248, 113, 113, 0.12); }
+.snaf-btn-icon {
+  flex: 0 0 auto;
+  width: 32px;
+  background: #211C4C;
+  border-color: #3B3479;
+  color: #9E98CE;
+  padding: 8px 0;
+}
+.snaf-btn-icon:hover { border-color: #7C3AED; color: #F5F3FF; }
+
+/* ── Notices ─────────────────────────────────────────────────────────────── */
+#snaf-notice {
+  display: none;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 12px;
+  border-bottom: 1px solid #2E2865;
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+#snaf-notice.is-open { display: flex; }
+#snaf-notice svg { width: 13px; height: 13px; margin-top: 1px; }
+#snaf-notice.warn { background: rgba(251, 191, 36, 0.1); color: #FCD34D; }
+#snaf-notice.info { background: rgba(124, 58, 237, 0.14); color: #C4B5FD; }
+
+/* ── Log ─────────────────────────────────────────────────────────────────── */
+#snaf-log {
+  height: 142px;
+  overflow-y: auto;
+  padding: 8px 12px;
+  font-family: 'Cascadia Mono', Consolas, 'SF Mono', monospace;
+  font-size: 10px;
+  background: #171339;
+}
+#snaf-log::-webkit-scrollbar { width: 7px; }
+#snaf-log::-webkit-scrollbar-track { background: transparent; }
+#snaf-log::-webkit-scrollbar-thumb {
+  background: #3B3479;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.snaf-log-line { display: flex; gap: 7px; padding: 1.5px 0; line-height: 1.55; }
+.snaf-log-when { color: #5F5892; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.snaf-log-msg { flex: 1; min-width: 0; word-break: break-word; color: #C6C0EC; }
+.snaf-log-line.lv-ok   .snaf-log-msg { color: #6EE7A0; }
+.snaf-log-line.lv-warn .snaf-log-msg { color: #FCD34D; }
+.snaf-log-line.lv-err  .snaf-log-msg { color: #FCA5A5; }
+.snaf-log-line.lv-dim  .snaf-log-msg { color: #7C74AD; }
+.snaf-log-line.lv-head .snaf-log-msg { color: #A78BFA; font-weight: 600; }
+.snaf-log-line.indent .snaf-log-msg { padding-left: 11px; }
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+#snaf-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-top: 1px solid #2E2865;
+  background: #211C4C;
+}
+#snaf-foot-left { display: flex; align-items: center; gap: 6px; min-width: 0; }
+#snaf-host {
+  font-size: 9.5px;
+  color: #6D659C;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
+}
+#snaf-ka {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  color: #6EE7A0;
+  flex-shrink: 0;
+}
+#snaf-ka.is-on { display: flex; }
+#snaf-ka svg { width: 10px; height: 10px; }
+#snaf-foot-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+#snaf-interval-lbl { font-size: 9.5px; color: #7C74AD; }
+#snaf-interval { font-size: 10px; padding: 3px 20px 3px 6px; }
+
+#snaf-widget.is-dry #snaf-head-mark { background: #B45309; }

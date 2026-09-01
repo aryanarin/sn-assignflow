@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<title>SN Assignflow — Configuration</title>
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="config.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── Navigation rail ─────────────────────────────────────────────────── -->
+  <nav class="rail" aria-label="Sections">
+    <div class="rail-brand">
+      <div class="rail-brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="4.5" cy="12" r="2.4" fill="#fff" stroke="none"/>
+          <path d="M7.4 12h3.1"/><path d="M10.5 12 17.2 5.3"/><path d="M10.5 12 17.2 18.7"/>
+          <path d="M13.6 5.3h3.6v3.6"/><path d="M13.6 18.7h3.6v-3.6"/>
+        </svg>
+      </div>
+      <div class="rail-brand-name">SN Assignflow</div>
+    </div>
+
+    <div class="rail-nav">
+      <button class="rail-item is-active" data-section="groups">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M15.5 19.5V18a3.5 3.5 0 0 0-3.5-3.5H7A3.5 3.5 0 0 0 3.5 18v1.5"/>
+          <circle cx="9.5" cy="8" r="3.3"/>
+          <path d="M20.5 19.5V18a3.5 3.5 0 0 0-2.6-3.38"/>
+          <path d="M15.2 5.1a3.3 3.3 0 0 1 0 5.8"/>
+        </svg>
+        <span>Assignment Groups</span>
+        <span class="rail-count" id="countGroups">0</span>
+      </button>
+
+      <button class="rail-item" data-section="rules">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 7h9"/><path d="M19 7h1"/><path d="M4 17h1"/><path d="M11 17h9"/>
+          <circle cx="16" cy="7" r="2.3"/><circle cx="8" cy="17" r="2.3"/>
+        </svg>
+        <span>Rules</span>
+      </button>
+
+      <button class="rail-item" data-section="agents">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 20v-1.8a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4V20"/>
+          <circle cx="12" cy="7.6" r="3.6"/>
+        </svg>
+        <span>Agents</span>
+        <span class="rail-count" id="countUsers">0</span>
+      </button>
+
+      <button class="rail-item" data-section="logs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="4" y="4" width="16" height="16" rx="2.2"/>
+          <path d="M8 9.5h8"/><path d="M8 13h8"/><path d="M8 16.5h5"/>
+        </svg>
+        <span>Logs</span>
+      </button>
+
+      <button class="rail-item" data-section="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3.1"/>
+          <path d="M12 3.2v2.3M12 18.5v2.3M5.2 7.6l2 1.15M16.8 14.25l2 1.15M5.2 16.4l2-1.15M16.8 9.75l2-1.15"/>
+        </svg>
+        <span>Settings</span>
+      </button>
+
+      <button class="rail-item" data-section="about">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="8.6"/><path d="M12 11.2v5"/><path d="M12 7.9h.01"/>
+        </svg>
+        <span>About</span>
+      </button>
+    </div>
+
+    <div class="rail-foot">
+      <button class="rail-theme" id="btnTheme" title="Switch between light and dark">
+        <span id="themeIcon"></span>
+        <span id="themeLabel">Dark</span>
+      </button>
+      <div class="rail-version" id="railVersion">v4.0.0</div>
+    </div>
+  </nav>
+
+  <!-- ── Content ─────────────────────────────────────────────────────────── -->
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <div class="topbar-title" id="topbarTitle">Assignment Groups</div>
+        <div class="topbar-sub" id="topbarSub">Define what gets assigned, and to whom</div>
+      </div>
+
+      <div class="topbar-actions">
+        <!-- Assignment Groups -->
+        <div class="topbar-actions" id="tbGroups" style="display:none">
+          <span class="dirty-dot" id="dirtyDot" title="Unsaved changes"></span>
+          <div class="toggle-row" id="groupActiveWrap" style="display:none">
+            <span class="toggle-label">Active</span>
+            <button class="toggle" id="groupActive" role="switch" aria-label="Group active">
+              <span class="toggle-knob"></span>
+            </button>
+          </div>
+          <button class="btn btn-primary" id="btnSaveGroup" disabled>Save Changes</button>
+        </div>
+
+        <!-- Agents -->
+        <div class="topbar-actions" id="tbAgents" style="display:none">
+          <button class="btn btn-ghost btn-sm" id="btnDirResolve">Resolve sys_ids</button>
+          <button class="btn btn-ghost btn-sm" id="btnDirImport">Import</button>
+          <button class="btn btn-ghost btn-sm" id="btnDirExport">Export</button>
+          <button class="btn btn-primary btn-sm" id="btnDirAdd">+ Add User</button>
+        </div>
+
+        <!-- Logs -->
+        <div class="topbar-actions" id="tbLogs" style="display:none">
+          <button class="btn btn-ghost btn-sm" id="btnLogRefresh">Refresh</button>
+          <button class="btn btn-ghost btn-sm" id="btnLogExport">Export</button>
+          <button class="btn btn-danger btn-sm" id="btnLogClear">Clear</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="panel-host">
+
+      <!-- ── Assignment Groups ─────────────────────────────────────────── -->
+      <section class="panel is-active" data-panel="groups">
+        <div class="split">
+          <div class="list-col">
+            <div class="list-head">
+              <label class="check-all" title="Select all groups">
+                <input type="checkbox" id="groupSelectAll" aria-label="Select all groups">
+              </label>
+              <span class="list-head-title">Groups</span>
+              <button class="btn btn-primary btn-sm" id="btnAddGroup">+ Add</button>
+            </div>
+            <div class="list-search">
+              <input class="input" id="groupSearch" type="search" placeholder="Filter groups…" aria-label="Filter groups">
+            </div>
+            <div class="list-bulk" id="groupBulk" style="display:none">
+              <span class="bulkbar-count" id="groupBulkCount">0 selected</span>
+              <div class="spacer"></div>
+              <button class="btn btn-ghost btn-sm" id="btnGroupExportSel">Export</button>
+              <button class="btn btn-danger btn-sm" id="btnGroupDeleteSel">Delete</button>
+            </div>
+            <div class="list-body" id="groupList"></div>
+            <div class="list-head" style="border-top:1px solid var(--line);border-bottom:none">
+              <button class="btn btn-ghost btn-sm" id="btnGroupImport">Import</button>
+              <button class="btn btn-ghost btn-sm" id="btnGroupExport">Export</button>
+            </div>
+          </div>
+          <div class="editor-col" id="groupEditor"></div>
+        </div>
+      </section>
+
+      <!-- ── Rules ─────────────────────────────────────────────────────── -->
+      <section class="panel" data-panel="rules">
+        <div class="panel-scroll">
+          <div class="panel-inner">
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Safety</div>
+                <div class="section-desc">
+                  These apply to every group. Changes take effect on the next cycle —
+                  there is no need to restart a running engine.
+                </div>
+              </div>
+              <div class="card-box">
+                <div class="setting">
+                  <div class="setting-main">
+                    <div class="setting-name">Dry run</div>
+                    <div class="setting-desc">
+                      Work out and log every assignment without writing anything to the
+                      instance. The best way to check a new filter query before trusting it.
+                    </div>
+                  </div>
+                  <div class="setting-control">
+                    <button class="toggle" id="ruleDryRun" role="switch" aria-label="Dry run">
+                      <span class="toggle-knob"></span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="setting">
+                  <div class="setting-main">
+                    <div class="setting-name">Only assign unassigned tickets</div>
+                    <div class="setting-desc">
+                      Appends <code>^assigned_toISEMPTY</code> to any query that doesn't already
+                      mention <code>assigned_to</code>, so a broad filter can't reassign
+                      work that already has an owner.
+                    </div>
+                  </div>
+                  <div class="setting-control">
+                    <button class="toggle" id="ruleUnassigned" role="switch" aria-label="Only assign unassigned tickets">
+                      <span class="toggle-knob"></span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="setting">
+                  <div class="setting-main">
+                    <div class="setting-name">Resolve user IDs automatically</div>
+                    <div class="setting-desc">
+                      Look up an agent's <code>sys_id</code> from their ServiceNow user ID when
+                      it isn't already known, and remember it. Turn this off to require an
+                      explicit sys_id on every agent.
+                    </div>
+                  </div>
+                  <div class="setting-control">
+                    <button class="toggle" id="ruleResolve" role="switch" aria-label="Resolve user IDs automatically">
+                      <span class="toggle-knob"></span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Limits</div>
+                <div class="section-desc">Set either to 0 to leave it uncapped.</div>
+              </div>
+              <div class="card-box">
+                <div class="setting">
+                  <div class="setting-main">
+                    <div class="setting-name">Maximum assignments per cycle</div>
+                    <div class="setting-desc">Counted across every group in the cycle.</div>
+                  </div>
+                  <div class="setting-control">
+                    <input class="input" id="ruleMaxCycle" type="number" min="0" max="10000" step="1" aria-label="Maximum assignments per cycle">
+                  </div>
+                </div>
+
+                <div class="setting">
+                  <div class="setting-main">
+                    <div class="setting-name">Maximum per agent, per cycle</div>
+                    <div class="setting-desc">
+                      Keeps one cycle from dropping a large backlog onto whoever happens to
+                      be next in the rotation.
+                    </div>
+                  </div>
+                  <div class="setting-control">
+                    <input class="input" id="ruleMaxAgent" type="number" min="0" max="10000" step="1" aria-label="Maximum per agent per cycle">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Defaults for new groups</div>
+                <div class="section-desc">Existing groups keep whatever they were set to.</div>
+              </div>
+              <div class="card-box">
+                <div class="setting">
+                  <div class="setting-main">
+                    <div class="setting-name">Table</div>
+                    <div class="setting-desc">Used when a group doesn't name one of its own.</div>
+                  </div>
+                  <div class="setting-control">
+                    <input class="input mono" id="ruleTable" style="min-width:150px" aria-label="Default table">
+                  </div>
+                </div>
+
+                <div class="setting">
+                  <div class="setting-main">
+                    <div class="setting-name">Cycle interval</div>
+                    <div class="setting-desc">How long the widget waits between runs.</div>
+                  </div>
+                  <div class="setting-control">
+                    <select class="select" id="ruleInterval" aria-label="Default cycle interval"></select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Agents (global user directory) ─────────────────────────────── -->
+      <section class="panel" data-panel="agents">
+        <div class="panel-scroll">
+          <div class="panel-inner" style="max-width:960px">
+
+            <div class="callout" style="margin-bottom:18px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="8.6"/><path d="M12 11.2v5"/><path d="M12 7.9h.01"/>
+              </svg>
+              <div>
+                One list of people, declared once and reused by every group. When you add an
+                agent to a group, these entries are offered as suggestions — you can always
+                type something that isn't in the list.
+                <strong>Resolve sys_ids</strong> fills in the missing IDs from an open
+                ServiceNow tab.
+              </div>
+            </div>
+
+            <div class="stat-strip" style="margin-bottom:18px">
+              <div class="stat-cell">
+                <div class="stat-val" id="dirTotal">0</div>
+                <div class="stat-lbl">People</div>
+              </div>
+              <div class="stat-cell">
+                <div class="stat-val" id="dirResolved">0</div>
+                <div class="stat-lbl">With sys_id</div>
+              </div>
+              <div class="stat-cell">
+                <div class="stat-val" id="dirMissing">0</div>
+                <div class="stat-lbl">Need lookup</div>
+              </div>
+              <div class="stat-cell">
+                <div class="stat-val" id="dirUsed">0</div>
+                <div class="stat-lbl">Used in groups</div>
+              </div>
+            </div>
+
+            <div class="row" style="margin-bottom:12px">
+              <input class="input" id="dirSearch" type="search" placeholder="Search by name, user ID, email or sys_id…"
+                     style="max-width:340px" aria-label="Search the directory">
+              <button class="btn btn-ghost btn-sm" id="btnDirSelectAll">Select all</button>
+              <div class="spacer"></div>
+              <span class="hint" id="dirShowing"></span>
+            </div>
+
+            <div class="bulkbar" id="dirBulk" style="display:none">
+              <span class="bulkbar-count" id="dirBulkCount">0 selected</span>
+              <div class="spacer"></div>
+              <button class="btn btn-ghost btn-sm" id="btnDirExportSel">Export selected</button>
+              <button class="btn btn-danger btn-sm" id="btnDirDeleteSel">Delete selected</button>
+            </div>
+
+            <div class="table-wrap" id="dirTable"></div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Logs ──────────────────────────────────────────────────────── -->
+      <section class="panel" data-panel="logs">
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+          <div class="log-toolbar">
+            <input class="input log-filter" id="logFilter" type="search" placeholder="Filter log text…" aria-label="Filter log text">
+            <select class="select" id="logLevel" aria-label="Filter by level">
+              <option value="">All levels</option>
+              <option value="ok">Assignments</option>
+              <option value="warn">Warnings</option>
+              <option value="err">Errors</option>
+              <option value="head">Cycle headers</option>
+            </select>
+            <div class="spacer"></div>
+            <span class="hint" id="logCount"></span>
+          </div>
+          <div class="log-body" id="logBody"></div>
+        </div>
+      </section>
+
+      <!-- ── Settings ──────────────────────────────────────────────────── -->
+      <section class="panel" data-panel="settings">
+        <div class="panel-scroll">
+          <div class="panel-inner">
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Instances</div>
+                <div class="section-desc">
+                  ServiceNow's own cloud domain is supported out of the box. If your instance is
+                  hosted somewhere else — on-premise, a vanity domain, behind a proxy — add it
+                  here. Your browser will ask before granting access to that host, and nothing
+                  is granted until you approve it.
+                </div>
+              </div>
+
+              <div class="card-box">
+                <div class="setting">
+                  <div class="setting-main">
+                    <div class="setting-name">Enable on all websites</div>
+                    <div class="setting-desc">
+                      The simplest option: works on any instance with no further setup. Prefer
+                      naming your domains below if your organisation restricts what extensions
+                      may access. Either way the widget only ever acts on pages that are
+                      actually ServiceNow.
+                    </div>
+                  </div>
+                  <div class="setting-control">
+                    <button class="toggle" id="allUrls" role="switch" aria-label="Enable on all websites">
+                      <span class="toggle-knob"></span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card-box" id="domainsBox">
+                <div class="field">
+                  <label class="field-label" for="newDomain">Add an instance domain</label>
+                  <div class="url-tool">
+                    <input class="input" id="newDomain" placeholder="servicenow.example.com"
+                           autocomplete="off" spellcheck="false">
+                    <button class="btn btn-primary" id="btnAddDomain">Add</button>
+                  </div>
+                  <div class="hint" style="margin-top:5px">
+                    Paste a full URL if it's easier — only the hostname is kept.
+                  </div>
+                </div>
+                <div id="domainList" style="margin-top:15px"></div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Session keep-alive</div>
+                <div class="section-desc">
+                  Pings a small endpoint on the instance in each open ServiceNow tab so the
+                  session doesn't time out. It sends only the cookie your browser already
+                  sends, reads nothing from the page, and keeps nothing from the response.
+                </div>
+              </div>
+              <div class="card-box">
+                <div class="setting">
+                  <div class="setting-main">
+                    <div class="setting-name">Keep my session alive</div>
+                    <div class="setting-desc">Applies to every open ServiceNow tab, engine running or not.</div>
+                  </div>
+                  <div class="setting-control">
+                    <button class="toggle" id="kaEnabled" role="switch" aria-label="Keep my session alive">
+                      <span class="toggle-knob"></span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="setting">
+                  <div class="setting-main">
+                    <div class="setting-name">Ping every</div>
+                    <div class="setting-desc">Minutes between pings. Two is comfortably inside a typical timeout.</div>
+                  </div>
+                  <div class="setting-control">
+                    <input class="input" id="kaMinutes" type="number" min="1" max="60" step="1" style="min-width:82px" aria-label="Ping interval in minutes">
+                    <span class="hint">min</span>
+                  </div>
+                </div>
+
+                <div class="setting">
+                  <div class="setting-main">
+                    <div class="setting-name">Always keep alive while the engine runs</div>
+                    <div class="setting-desc">
+                      Overrides the toggle above whenever a dispatcher is running or paused, so
+                      a long unattended run can't be cut short by a logout.
+                    </div>
+                  </div>
+                  <div class="setting-control">
+                    <button class="toggle" id="kaForce" role="switch" aria-label="Always keep alive while the engine runs">
+                      <span class="toggle-knob"></span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head"><div class="section-title">Appearance</div></div>
+              <div class="card-box">
+                <div class="setting">
+                  <div class="setting-main">
+                    <div class="setting-name">Theme</div>
+                    <div class="setting-desc">Applies to this page. The popup and the on-page widget stay dark by design.</div>
+                  </div>
+                  <div class="setting-control">
+                    <select class="select" id="themeSelect" aria-label="Theme">
+                      <option value="light">Light</option>
+                      <option value="dark">Dark</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="setting">
+                  <div class="setting-main">
+                    <div class="setting-name">Keep a log history</div>
+                    <div class="setting-desc">Stores recent engine activity so the Logs section has something to show.</div>
+                  </div>
+                  <div class="setting-control">
+                    <button class="toggle" id="logPersist" role="switch" aria-label="Keep a log history">
+                      <span class="toggle-knob"></span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Backup</div>
+                <div class="section-desc">
+                  A full backup contains your groups, the global user directory, rules and
+                  round-robin positions — everything except the log history.
+                </div>
+              </div>
+              <div class="card-box">
+                <div class="row">
+                  <button class="btn btn-secondary" id="btnBackupExport">Export everything</button>
+                  <button class="btn btn-secondary" id="btnBackupImport">Import a backup</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Reset</div>
+                <div class="section-desc">Clears every group, the directory and all stored settings on this browser.</div>
+              </div>
+              <div class="card-box">
+                <button class="btn btn-danger" id="btnReset">Delete all SN Assignflow data</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ── About ─────────────────────────────────────────────────────── -->
+      <section class="panel" data-panel="about">
+        <div class="panel-scroll">
+          <div class="panel-inner">
+            <div class="about-head">
+              <div class="brand-mark lg">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="4.5" cy="12" r="2.4" fill="#fff" stroke="none"/>
+                  <path d="M7.4 12h3.1"/><path d="M10.5 12 17.2 5.3"/><path d="M10.5 12 17.2 18.7"/>
+                  <path d="M13.6 5.3h3.6v3.6"/><path d="M13.6 18.7h3.6v-3.6"/>
+                </svg>
+              </div>
+              <div>
+                <div class="about-name">SN Assignflow</div>
+                <div class="about-ver" id="aboutVer">Version 4.0.0</div>
+              </div>
+            </div>
+
+            <div class="card-box" style="margin-bottom:18px">
+              <div class="kv"><div class="kv-k">Engine location</div><div class="kv-v">
+                Runs inside the ServiceNow tab, not in the background, so its timer survives
+                and every request is same-origin to your instance.
+              </div></div>
+              <div class="kv"><div class="kv-k">Assignment order</div><div class="kv-v">
+                Round robin over the active agents of a group, in the order you list them. The
+                position is remembered per group between runs.
+              </div></div>
+              <div class="kv"><div class="kv-k">Agent identity</div><div class="kv-v">
+                A ServiceNow user ID or a <code>sys_id</code>. User IDs are resolved once and cached.
+              </div></div>
+              <div class="kv"><div class="kv-k">Network activity</div><div class="kv-v">
+                The Table API on your own instance, plus the keep-alive ping. Nothing is sent
+                anywhere else — there is no server behind this extension.
+              </div></div>
+              <div class="kv"><div class="kv-k">Instances</div><div class="kv-v" id="aboutHosts"></div></div>
+              <div class="kv"><div class="kv-k">Storage in use</div><div class="kv-v" id="aboutStorage">—</div></div>
+            </div>
+
+            <div class="card-box">
+              <div class="section-title" style="margin-bottom:10px">Getting started</div>
+              <div class="hint" style="line-height:1.85">
+                1. Add the people you dispatch to under <strong>Agents</strong>, then use
+                   <strong>Resolve sys_ids</strong> with a ServiceNow tab open.<br>
+                2. Create a group, paste a filtered ServiceNow list URL into the converter, and
+                   add agents to the rotation.<br>
+                3. Turn on <strong>Dry run</strong> under Rules and start the widget once to
+                   confirm the filter selects what you expect.<br>
+                4. Turn dry run off and let it run.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="filePicker" style="display:none" aria-hidden="true">
+
+<script src="shared.js"></script>
+<script src="config.js"></script>
+</body>
+</html>

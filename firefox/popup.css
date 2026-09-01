@@ -1,0 +1,140 @@
+/* SN Assignflow — toolbar popup
+ *
+ * The popup is ink-dark in both themes. It reads as a product surface rather
+ * than a page, and it is the one place the brand colour carries the whole
+ * composition, exactly as in the design.
+ */
+
+body {
+  width: 258px;
+  background: var(--ink);
+  color: var(--lavender);
+  padding: 14px;
+  overflow: hidden;
+}
+
+/* ── Identity card ───────────────────────────────────────────────────────── */
+.card {
+  background: linear-gradient(160deg, #262059 0%, #1E1B4B 100%);
+  border: 1px solid var(--ink-line);
+  border-radius: var(--radius-lg);
+  padding: 15px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.card-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.card-mark svg { width: 22px; height: 22px; }
+.card-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.card-ver {
+  font-size: 11px;
+  color: #A79FD8;
+  margin-top: 3px;
+}
+
+/* ── Primary action ──────────────────────────────────────────────────────── */
+#btnLaunch {
+  width: 100%;
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color var(--speed) ease;
+}
+#btnLaunch:hover { background: var(--brand-light); }
+#btnLaunch:focus-visible { outline: 2px solid var(--brand-light); outline-offset: 2px; }
+#btnLaunch svg { width: 15px; height: 15px; }
+#btnLaunch.is-on { background: var(--ink-soft); border: 1px solid var(--brand); color: #C9C1F5; }
+#btnLaunch.is-on:hover { background: #302a6b; }
+
+#status {
+  font-size: 10.5px;
+  color: #8B83BC;
+  text-align: center;
+  line-height: 1.5;
+  min-height: 30px;
+  margin: 9px 2px 4px;
+}
+#status.err { color: #FCA5A5; }
+#status.ok  { color: #86EFAC; }
+
+.rule {
+  height: 1px;
+  background: var(--ink-line);
+  margin: 4px 0 11px;
+}
+
+/* ── Secondary action ────────────────────────────────────────────────────── */
+#btnConfig {
+  width: 100%;
+  background: transparent;
+  color: #B8B0E4;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--radius);
+  padding: 10px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: border-color var(--speed) ease, color var(--speed) ease;
+}
+#btnConfig:hover { border-color: var(--brand-light); color: #fff; }
+#btnConfig:focus-visible { outline: 2px solid var(--brand-light); outline-offset: 2px; }
+#btnConfig svg { width: 14px; height: 14px; }
+
+/* ── Footer summary ─────────────────────────────────────────────────────── */
+.summary {
+  display: flex;
+  gap: 6px;
+  margin-top: 11px;
+}
+.summary-cell {
+  flex: 1;
+  background: #191541;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--radius-sm);
+  padding: 7px 4px;
+  text-align: center;
+}
+.summary-val {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-light);
+  line-height: 1.1;
+}
+.summary-lbl {
+  font-size: 9px;
+  color: #7C74AD;
+  margin-top: 3px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}

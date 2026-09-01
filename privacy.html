@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SN Assignflow — Privacy Policy</title>
+<style>
+  :root {
+    --brand: #7C3AED;
+    --ink:   #1E1B4B;
+    --text:  #2A2550;
+    --muted: #6F6A9B;
+    --line:  #E4E0F5;
+    --tint:  #F5F3FF;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+    color: var(--text);
+    background: #fff;
+    line-height: 1.65;
+    padding: 48px 24px 80px;
+  }
+  main { max-width: 720px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+  .mark {
+    width: 40px; height: 40px; border-radius: 10px; background: var(--brand);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .mark svg { width: 24px; height: 24px; }
+  h1 { font-size: 25px; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; }
+  .updated { font-size: 13px; color: var(--muted); margin-bottom: 30px; }
+  h2 {
+    font-size: 16px; font-weight: 600; color: var(--ink);
+    margin: 32px 0 10px; padding-bottom: 7px; border-bottom: 1px solid var(--line);
+  }
+  p { margin-bottom: 13px; }
+  ul { margin: 0 0 13px 22px; }
+  li { margin-bottom: 7px; }
+  code {
+    font-family: 'Cascadia Mono', Consolas, monospace; font-size: 12.5px;
+    background: var(--tint); border: 1px solid var(--line);
+    border-radius: 4px; padding: 1px 5px;
+  }
+  .lead {
+    background: var(--tint); border-left: 3px solid var(--brand);
+    border-radius: 0 8px 8px 0; padding: 16px 18px; margin-bottom: 8px;
+  }
+  .lead strong { color: var(--ink); }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 600; color: var(--ink); font-size: 13px; }
+  footer { margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  a { color: var(--brand); }
+</style>
+</head>
+<body>
+<main>
+
+  <header>
+    <div class="mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="4.5" cy="12" r="2.4" fill="#fff" stroke="none"/>
+        <path d="M7.4 12h3.1"/><path d="M10.5 12 17.2 5.3"/><path d="M10.5 12 17.2 18.7"/>
+        <path d="M13.6 5.3h3.6v3.6"/><path d="M13.6 18.7h3.6v-3.6"/>
+      </svg>
+    </div>
+    <h1>SN Assignflow — Privacy Policy</h1>
+  </header>
+  <div class="updated">Version 4.0.0</div>
+
+  <div class="lead">
+    <p style="margin:0">
+      <strong>There is no server behind this extension.</strong> Nothing you configure,
+      and nothing it reads from ServiceNow, is ever transmitted to the author or to
+      any third party. All data stays in your browser's local extension storage, and
+      the only host it ever contacts is the ServiceNow instance in the tab you are
+      already using.
+    </p>
+  </div>
+
+  <h2>What is stored, and where</h2>
+  <p>
+    Everything is held in <code>chrome.storage.local</code> — local to your browser
+    profile on your machine. None of it is synced by the extension.
+  </p>
+  <table>
+    <tr><th>Data</th><th>Why it exists</th></tr>
+    <tr>
+      <td>Assignment groups: name, table, filter query, agent list</td>
+      <td>The configuration that tells the engine what to assign and to whom.</td>
+    </tr>
+    <tr>
+      <td>Global user list: display names, ServiceNow user IDs, <code>sys_id</code>s, optional email addresses</td>
+      <td>So agents can be declared once and reused, and so a user ID need only be resolved to a <code>sys_id</code> once.</td>
+    </tr>
+    <tr>
+      <td>Round-robin position per group</td>
+      <td>So the rotation continues where it left off rather than restarting each run.</td>
+    </tr>
+    <tr>
+      <td>Rules, keep-alive settings, theme</td>
+      <td>Your preferences.</td>
+    </tr>
+    <tr>
+      <td>Assignment counters and a capped log of recent activity (500 entries)</td>
+      <td>The statistics in the widget and the Logs section. Log history can be turned off in Settings.</td>
+    </tr>
+    <tr>
+      <td>Widget position and open state</td>
+      <td>So the widget stays where you put it across ServiceNow navigations.</td>
+    </tr>
+  </table>
+  <p>
+    The user IDs, names, email addresses and <code>sys_id</code>s in the global list
+    are personal data about your colleagues. They are entered by you or fetched from
+    your own instance, they never leave your browser, and
+    <strong>Settings → Delete all SN Assignflow data</strong> removes them
+    immediately and permanently.
+  </p>
+
+  <h2>Network requests</h2>
+  <p>Three, all to the ServiceNow instance in the tab you are on, all relative to its own origin:</p>
+  <ul>
+    <li>
+      <strong>Reading tickets.</strong> A <code>GET</code> to the Table API using your
+      group's filter query, requesting only <code>sys_id</code> and
+      <code>number</code>.
+    </li>
+    <li>
+      <strong>Writing an assignment.</strong> A <code>PATCH</code> to the Table API
+      setting <code>assigned_to</code> on a single record. Nothing else on the record
+      is read or changed. With <em>Dry run</em> enabled this request is never made.
+    </li>
+    <li>
+      <strong>Resolving a user ID.</strong> A <code>GET</code> to
+      <code>sys_user</code> requesting <code>sys_id</code>, <code>name</code>,
+      <code>user_name</code> and <code>email</code> for the agents you configured.
+      Happens once per agent and is then cached.
+    </li>
+  </ul>
+  <p>
+    Plus the <strong>keep-alive ping</strong>: a <code>GET</code> to a small endpoint
+    on the same instance (<code>/api/now/session</code>, <code>/now/nav/header</code>
+    or <code>/stats.do</code>) on a timer you control. It sends only the session
+    cookie your browser already sends, reads nothing from the page, and keeps nothing
+    from the response. It can be switched off in Settings, though it is forced on
+    while the engine is running so an unattended run isn't ended by a logout.
+  </p>
+  <p>
+    Every one of these rides the ServiceNow session already open in that tab. The
+    extension never handles your password, never obtains a token of its own, and
+    never sends credentials anywhere other than the instance they belong to.
+  </p>
+
+  <h2>Reading the page</h2>
+  <p>
+    The extension reads exactly one value out of the ServiceNow page: the user token
+    (<code>g_ck</code>), which the Table API requires in order to accept a write. It
+    is read from the page's own JavaScript context, kept in memory for the lifetime
+    of the tab, and never stored or transmitted.
+  </p>
+  <p>
+    No form fields, ticket contents, attachments, keystrokes or browsing history are
+    read, and no page content is collected.
+  </p>
+
+  <h2>Permissions, and why each is needed</h2>
+  <table>
+    <tr><th>Permission</th><th>Reason</th></tr>
+    <tr><td><code>storage</code></td><td>To save your groups, user list and settings locally.</td></tr>
+    <tr><td><code>tabs</code></td><td>To find the active ServiceNow tab when you launch the widget, and to open the configuration page.</td></tr>
+    <tr><td><code>scripting</code></td><td>To read the user token from the page's own context, and to inject the widget into a tab that was already open when the extension was installed.</td></tr>
+    <tr>
+      <td>Host access to <code>*.service-now.com</code></td>
+      <td>ServiceNow's own cloud domain. The only host requested when you install the extension.</td>
+    </tr>
+    <tr>
+      <td><code>&lt;all_urls&gt;</code> — optional, off by default</td>
+      <td>
+        Never requested at install time and never requested on its own. Many instances are
+        hosted on-premise or on a company domain that cannot be known in advance, so
+        <strong>Settings → Instances</strong> lets you either name those hosts individually
+        or, if you prefer, allow all sites in one step. Your browser asks before either is
+        granted, and you can withdraw it at any time.
+      </td>
+    </tr>
+  </table>
+  <p>
+    <strong>No customer or employer domain is built into this extension.</strong> Apart from
+    ServiceNow's cloud domain, every host it can reach is one you added yourself.
+  </p>
+  <p>
+    Allowing all sites is a convenience, not a statement that every site is ServiceNow. Even
+    with it granted, the widget and the keep-alive ping only act on a page once it has been
+    confirmed to be a ServiceNow instance — either because you named its domain or because
+    the page carries ServiceNow's own markers. On any other site the extension does nothing
+    and sends no requests.
+  </p>
+  <p>
+    There is no remote code: every line the extension runs ships inside the package.
+  </p>
+
+  <h2>Files you export</h2>
+  <p>
+    Exported groups, user lists and backups are written to your own downloads folder
+    and go nowhere else. They do contain real names, user IDs and
+    <code>sys_id</code>s, so treat them as you would any staff list — in particular,
+    think twice before committing one to a shared repository.
+  </p>
+
+  <h2>Data collection</h2>
+  <p>
+    None. No analytics, no telemetry, no crash reporting, no advertising identifiers,
+    no cookies set by the extension. The Firefox listing declares
+    <em>no data collection</em>, and that is accurate.
+  </p>
+
+  <h2>Children</h2>
+  <p>
+    This is a workplace tool for ServiceNow administrators and is not directed at
+    children.
+  </p>
+
+  <h2>Changes to this policy</h2>
+  <p>
+    Any change is published with a new version of the extension and recorded in the
+    changelog. If a future version were ever to collect or transmit data, that would
+    require a new permission and your explicit consent.
+  </p>
+
+  <footer>
+    Questions about this policy, or about how the extension behaves, are welcome via
+    the project's <a href="https://github.com/aryanarin/assignflow">repository</a>.
+  </footer>
+
+</main>
+</body>
+</html>
