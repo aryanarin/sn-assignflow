@@ -280,4 +280,4 @@ does not apply to.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+GNU V3 — see [LICENSE](LICENSE).
