@@ -466,27 +466,34 @@ head('Behavioural guarantees');
     const widget = read(path.join(CHROME, 'widget.js')) || '';
     const config = read(path.join(CHROME, 'config.js')) || '';
 
-    // Keep-alive must never point at an absolute URL: each tab pings its own
-    // instance and nothing else.
-    const epMatch = shared.match(/SNAF_KEEPALIVE_ENDPOINTS\s*=\s*\[([^\]]+)\]/);
-    if (!epMatch) fail('SNAF_KEEPALIVE_ENDPOINTS not found in shared.js');
-    else {
-        const eps = epMatch[1].match(/'([^']+)'/g) || [];
-        const absolute = eps.filter(e => /https?:|\/\//.test(e));
-        if (absolute.length) fail('keep-alive endpoints must be instance-relative: ' + absolute.join(', '));
-        else pass('all ' + eps.length + ' keep-alive endpoints are instance-relative');
-    }
+    // Keep-alive must never point at an absolute URL: each tab checks its own
+    // instance and nothing else. The UI request is the one that actually
+    // extends a ServiceNow session; the API request only verifies it.
+    ['SNAF_KEEPALIVE_UI_URL', 'SNAF_KEEPALIVE_HEALTH_URL'].forEach(name => {
+        const m = shared.match(new RegExp(name + "\\s*=\\s*'([^']+)'"));
+        if (!m) fail(name + ' not found in shared.js');
+        else if (/^https?:|^\/\//.test(m[1])) fail(name + ' must be instance-relative');
+        else pass(name + ' is instance-relative');
+    });
 
-    if (!/location\.origin\s*\+\s*endpoint/.test(widget)) {
-        fail('the keep-alive ping does not look instance-relative in widget.js');
-    } else pass('keep-alive pings location.origin of the current tab');
+    if (!/location\.origin\s*\+\s*SNAF_KEEPALIVE_UI_URL/.test(widget) ||
+        !/location\.origin\s*\+\s*SNAF_KEEPALIVE_HEALTH_URL/.test(widget)) {
+        fail('the keep-alive requests do not look instance-relative in widget.js');
+    } else pass('keep-alive requests use location.origin of the current tab');
 
     // Under an all-sites grant the content script runs everywhere, so the ping
     // must be gated on the page actually being an instance. Without this the
-    // extension would hit /api/now/session on unrelated servers.
-    if (!/function keepAliveWanted\(\)\s*\{[\s\S]{0,400}?snTrusted !== true\)\s*return false/.test(widget)) {
-        fail('keepAliveWanted() must return false unless the page is a confirmed ServiceNow instance');
-    } else pass('keep-alive only runs on a confirmed ServiceNow instance');
+    // extension would hit the table API on unrelated servers — and on a login
+    // page it would provoke the browser's native credential dialog.
+    if (!/function keepAliveWanted\(\)\s*\{[\s\S]{0,500}?snTrusted !== true\)\s*return false[\s\S]{0,400}?pageWantsCredentials\(\)\)\s*return false/.test(widget)) {
+        fail('keepAliveWanted() must gate on instance trust and on the page not asking for credentials');
+    } else pass('keep-alive only runs on a confirmed instance, signed in');
+
+    // The XPI logic: three failed checks mean the session is gone, routing
+    // pauses, and a later success resumes it.
+    if (!/kaFailStreak === 3/.test(widget) || !/kaAutoPaused = true/.test(widget)) {
+        fail('keep-alive has no three-strike session-lost pause');
+    } else pass('three failed checks pause the engine and recovery resumes it');
 
     if (!/function resolveTrust\(\)/.test(widget)) {
         fail('widget.js has no resolveTrust() — nothing decides whether a page is an instance');

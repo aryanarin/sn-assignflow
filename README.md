@@ -23,11 +23,12 @@ no server.
 - **Import and export, selectively.** Groups and the user list each have
   *import*, *export selected* and *export all*. The user list also reads and
   writes CSV. There's a full backup of everything under Settings.
-- **Session keep-alive, built in.** Pings a small endpoint on your instance so
-  you don't get logged out mid-ticket, and it is forced on whenever the engine
-  is running so a long unattended run can't be cut short by a logout. It stays
-  completely off the sign-in page, so it never triggers the browser's own
-  credentials dialog.
+- **Session keep-alive, built in.** Loads a tiny UI page on your instance plus a
+  one-row API check so you don't get logged out mid-ticket. After three failed
+  checks it pauses a running dispatcher instead of hammering a dead session, and
+  resumes when you sign in again. It is forced on whenever the engine is running,
+  and stays completely off the sign-in page, so it never triggers the browser's
+  own credentials dialog.
 - **Dry run.** Work out and log every assignment without writing anything. The
   honest way to check a new filter before trusting it.
 - **Safety limits.** Cap assignments per cycle and per agent per cycle, and keep
@@ -191,11 +192,20 @@ restarting a running engine.
 ## Session keep-alive
 
 Replaces the userscript this was previously done with. Settings → **Session
-keep-alive**, on by default, every 2 minutes.
+keep-alive**, on by default, every 45 seconds.
 
-It tries `/api/now/session`, then `/now/nav/header`, then `/stats.do`, rotating
-to the next one on a non-OK response because instances differ in what they
-expose. It also pings once when you return to a tab that has been in the
+A REST call on its own does not push a ServiceNow session timeout forward, so
+each check makes two requests. First it loads a tiny incident list page
+(`/incident_list.do`, limited to one record) — a UI-level request, the kind the
+browser itself makes when you click around. Then it verifies the session with
+one limited Table API read. Redirects, timeouts and non-2xx responses all count
+as failures.
+
+After three failures in a row the extension treats the session as lost: a
+running dispatcher pauses and modifies nothing further. Checks keep running, and
+signing in again in that tab is enough — the next successful check resumes
+routing. Early failures retry after 10 seconds instead of waiting a full
+interval. It also checks once when you return to a tab that has been in the
 background, which is exactly where sessions quietly expire.
 
 It makes no request at all while the page is asking for credentials — the
@@ -208,17 +218,18 @@ on top of the login form. Signing in loads a fresh page, which arms it again.
 dispatcher is running or paused. That is the point of it: an unattended run must
 not be ended by a logout.
 
-The request goes to *the instance in that tab*, relative to its own origin. It
-sends only the session cookie your browser already sends, reads nothing from the
-page, and keeps nothing from the response.
+The requests go to *the instance in that tab*, relative to its own origin. They
+send only the session cookie your browser already sends, read nothing from the
+page, and keep nothing from the response.
 
 ## Privacy
 
 There is no server behind this extension and nothing is sent anywhere except
 your own ServiceNow instance. Network activity is exactly three things: reading
-tickets from the Table API, writing `assigned_to` back, and the keep-alive ping.
-Everything you configure stays in `chrome.storage.local` on your machine. Full
-detail in [privacy.html](privacy.html).
+tickets from the Table API, writing `assigned_to` back, and the keep-alive
+checks (a small UI page plus a one-row Table API read). Everything you configure
+stays in `chrome.storage.local` on your machine. Full detail in
+[privacy.html](privacy.html).
 
 Exported files contain real user `sys_id`s and names. `.gitignore` excludes them
 by default — worth keeping that way.

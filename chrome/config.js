@@ -231,8 +231,8 @@ async function setTheme(next) {
 const SUPPORT_HASH = 'support';
 
 function extensionVersion() {
-    try { return chrome.runtime.getManifest().version || '4.1.1'; }
-    catch (e) { return '4.1.1'; }
+    try { return chrome.runtime.getManifest().version || '4.1.2'; }
+    catch (e) { return '4.1.2'; }
 }
 
 function openSupport() {
@@ -1974,12 +1974,12 @@ function wireSettings() {
         () => settings.keepAlive.enabled,
         v => { settings.keepAlive.enabled = v; saveSettings(); });
 
-    const mins = $('kaMinutes');
-    mins.value = settings.keepAlive.minutes;
-    mins.addEventListener('change', () => {
-        settings.keepAlive.minutes = snafClampInt(mins.value,
-            SNAF_KEEPALIVE_MIN_MINUTES, SNAF_KEEPALIVE_MAX_MINUTES, SNAF_KEEPALIVE_DEFAULT_MINUTES);
-        mins.value = settings.keepAlive.minutes;
+    const secs = $('kaSeconds');
+    secs.value = settings.keepAlive.seconds;
+    secs.addEventListener('change', () => {
+        settings.keepAlive.seconds = snafClampInt(secs.value,
+            SNAF_KEEPALIVE_MIN_SECONDS, SNAF_KEEPALIVE_MAX_SECONDS, SNAF_KEEPALIVE_DEFAULT_SECONDS);
+        secs.value = settings.keepAlive.seconds;
         saveSettings();
     });
 
@@ -2172,8 +2172,8 @@ async function renderAbout() {
     let manifest = {};
     try { manifest = chrome.runtime.getManifest(); } catch (e) {}
 
-    $('aboutVer').textContent   = 'Version ' + (manifest.version || '4.1.1');
-    $('railVersion').textContent = 'v' + (manifest.version || '4.1.1');
+    $('aboutVer').textContent   = 'Version ' + (manifest.version || '4.1.2');
+    $('railVersion').textContent = 'v' + (manifest.version || '4.1.2');
 
     // Built-in hosts come from the manifest; anything else was granted by the
     // user at runtime, so it has to be read from storage rather than the build.
@@ -2218,7 +2218,7 @@ function refreshEverything() {
     $('ruleMaxAgent').value = settings.rules.maxPerAgentPerCycle;
     $('ruleTable').value    = settings.rules.defaultTable;
     fillIntervalSelect($('ruleInterval'), settings.rules.defaultIntervalSecs);
-    $('kaMinutes').value    = settings.keepAlive.minutes;
+    $('kaSeconds').value    = settings.keepAlive.seconds;
 
     [['ruleDryRun', settings.rules.dryRun],
      ['ruleUnassigned', settings.rules.requireUnassigned],

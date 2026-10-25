@@ -106,7 +106,7 @@
         <span id="themeIcon"></span>
         <span id="themeLabel">Dark</span>
       </button>
-      <div class="rail-version" id="railVersion">v4.1.1</div>
+      <div class="rail-version" id="railVersion">v4.1.2</div>
     </div>
   </nav>
 
@@ -439,9 +439,11 @@
               <div class="section-head">
                 <div class="section-title">Session keep-alive</div>
                 <div class="section-desc">
-                  Pings a small endpoint on the instance in each open ServiceNow tab so the
-                  session doesn't time out. It sends only the cookie your browser already
-                  sends, reads nothing from the page, and keeps nothing from the response.
+                  Loads a tiny page and checks the session in each open ServiceNow tab so it
+                  doesn't time out. Both requests go to your instance, send only the cookie
+                  your browser already sends, and keep nothing from the response. If the
+                  session is lost, a running dispatcher pauses and resumes when you sign in
+                  again.
                 </div>
               </div>
               <div class="card-box">
@@ -459,12 +461,12 @@
 
                 <div class="setting">
                   <div class="setting-main">
-                    <div class="setting-name">Ping every</div>
-                    <div class="setting-desc">Minutes between pings. Two is comfortably inside a typical timeout.</div>
+                    <div class="setting-name">Check every</div>
+                    <div class="setting-desc">Seconds between checks. Forty-five is comfortably inside a typical timeout.</div>
                   </div>
                   <div class="setting-control">
-                    <input class="input" id="kaMinutes" type="number" min="1" max="60" step="1" style="min-width:82px" aria-label="Ping interval in minutes">
-                    <span class="hint">min</span>
+                    <input class="input" id="kaSeconds" type="number" min="15" max="900" step="5" style="min-width:82px" aria-label="Keep-alive interval in seconds">
+                    <span class="hint">sec</span>
                   </div>
                 </div>
 
@@ -560,7 +562,7 @@
               </div>
               <div>
                 <div class="about-name">SN Assignflow</div>
-                <div class="about-ver" id="aboutVer">Version 4.1.1</div>
+                <div class="about-ver" id="aboutVer">Version 4.1.2</div>
               </div>
             </div>
 

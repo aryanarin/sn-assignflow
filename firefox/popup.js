@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
         '<path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.4 8.4 0 1 0 10.5 10.5z"/></svg>';
 
     let busy = false;
-    let version = '4.1.1';
+    let version = '4.1.2';
     let theme = 'light';
 
     try {

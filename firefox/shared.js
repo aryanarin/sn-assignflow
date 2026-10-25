@@ -161,13 +161,17 @@ function snafLooksLikeServiceNow(doc, loc) {
 }
 
 // ── Session keep-alive ────────────────────────────────────────────────────────
-// Instance-relative on purpose: each tab pings its own instance and nothing
-// else. Tried in order — on a non-OK response or a network error the next one
-// is used for the following ping, because instances differ in what they expose.
-var SNAF_KEEPALIVE_ENDPOINTS       = ['/api/now/session', '/now/nav/header', '/stats.do'];
-var SNAF_KEEPALIVE_DEFAULT_MINUTES = 2;
-var SNAF_KEEPALIVE_MIN_MINUTES     = 1;
-var SNAF_KEEPALIVE_MAX_MINUTES     = 60;
+// Instance-relative on purpose: each tab checks its own instance and nothing
+// else. The UI request is what actually pushes a ServiceNow session timeout
+// forward — REST calls on their own do not — and the API request says whether
+// the session is still valid. Adapted from the AssignFlow 1.7.1 userscript.
+var SNAF_KEEPALIVE_UI_URL          = '/incident_list.do';
+var SNAF_KEEPALIVE_HEALTH_URL      = '/api/now/table/incident?sysparm_limit=1&sysparm_fields=sys_id';
+var SNAF_KEEPALIVE_DEFAULT_SECONDS = 45;
+var SNAF_KEEPALIVE_MIN_SECONDS     = 15;
+var SNAF_KEEPALIVE_MAX_SECONDS     = 900;
+var SNAF_KEEPALIVE_RETRY_SECONDS   = 10;
+var SNAF_KEEPALIVE_TIMEOUT_MS      = 20000;
 
 // ── Misc limits ───────────────────────────────────────────────────────────────
 var SNAF_LOG_LIMIT      = 500;   // persisted log ring buffer
@@ -222,7 +226,7 @@ function snafDefaultSettings() {
     return {
         keepAlive: {
             enabled: true,
-            minutes: SNAF_KEEPALIVE_DEFAULT_MINUTES,
+            seconds: SNAF_KEEPALIVE_DEFAULT_SECONDS,
             // While the engine is running the session must not lapse, so
             // keep-alive is forced on regardless of the toggle above.
             forceWhileRunning: true
@@ -247,9 +251,14 @@ function snafNormaliseSettings(raw) {
     const ka = raw.keepAlive;
     if (ka && typeof ka === 'object') {
         if (typeof ka.enabled === 'boolean') out.keepAlive.enabled = ka.enabled;
-        out.keepAlive.minutes = snafClampInt(
-            ka.minutes, SNAF_KEEPALIVE_MIN_MINUTES, SNAF_KEEPALIVE_MAX_MINUTES,
-            SNAF_KEEPALIVE_DEFAULT_MINUTES
+        // 4.1.x stored minutes. Convert once so an upgrade keeps the interval
+        // the user chose instead of silently resetting it.
+        const secs = typeof ka.seconds === 'number' ? ka.seconds
+                   : typeof ka.minutes === 'number' ? ka.minutes * 60
+                   : SNAF_KEEPALIVE_DEFAULT_SECONDS;
+        out.keepAlive.seconds = snafClampInt(
+            secs, SNAF_KEEPALIVE_MIN_SECONDS, SNAF_KEEPALIVE_MAX_SECONDS,
+            SNAF_KEEPALIVE_DEFAULT_SECONDS
         );
         if (typeof ka.forceWhileRunning === 'boolean') {
             out.keepAlive.forceWhileRunning = ka.forceWhileRunning;

@@ -55,7 +55,8 @@ Declare **no data collection** on both stores. This is accurate:
 - The only network requests go to the user's own ServiceNow instance, relative to
   the origin of the tab they are already signed in to: reading records via the
   Table API, writing `assigned_to` on a record, resolving a configured agent's
-  user ID via `sys_user`, and a session keep-alive ping.
+  user ID via `sys_user`, and the keep-alive checks (a one-record UI page plus a
+  one-row Table API read).
 
 Personal data (colleagues' names, ServiceNow user IDs, `sys_id`s and optional
 email addresses) is entered by the user or fetched from their own instance, is

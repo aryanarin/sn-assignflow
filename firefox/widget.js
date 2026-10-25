@@ -524,6 +524,7 @@ async function apiFetch(method, path, body) {
         // The token may simply have rotated. Drop it so the next call re-reads.
         token = null;
         tokenTried = false;
+        noteSessionProblem();
         throw new Error('HTTP ' + res.status + ' — not authorised');
     }
 
@@ -532,6 +533,7 @@ async function apiFetch(method, path, body) {
     const ctype = res.headers.get('content-type') || '';
     if (!ctype.includes('json')) {
         if (res.redirected || res.ok) {
+            noteSessionProblem();
             throw new Error('Session expired — reload the ServiceNow tab and sign in');
         }
         throw new Error('HTTP ' + res.status);
@@ -872,12 +874,28 @@ async function runCycle() {
 }
 
 // ── Keep-alive ────────────────────────────────────────────────────────────────
-// The session must not lapse while the engine is waiting between cycles, so
-// keep-alive is forced on whenever the engine is not stopped, whatever the
-// toggle says. Requests go to this instance only and nothing is read from them.
-let kaTimer = null;
-let kaIdx   = 0;
-let kaOn    = false;
+// Ported from AssignFlow 1.7.1. A REST call on its own does not push a
+// ServiceNow session timeout forward, so each check first loads a tiny UI list
+// page — that is the kind of request the browser itself makes when you click
+// around — and then verifies the session with one limited Table API read.
+// Redirects, timeouts and non-2xx responses all count as failures. After three
+// in a row the session is treated as lost and the engine pauses; it resumes by
+// itself when a later check succeeds.
+//
+// Keep-alive is forced on whenever the engine is not stopped, whatever the
+// toggle says, because an unattended run cannot survive a logout.
+let kaTimer      = null;
+let kaRetryTimer = null;
+let kaPeriodMs   = 0;
+let kaOn         = false;
+let kaBusy       = false;
+let kaChecks     = 0;
+let kaFailStreak = 0;
+let kaSessionOk  = true;
+let kaLastPingTs = 0;
+let kaLastOkTs   = Date.now();
+let kaUiWarned   = false;
+let kaAutoPaused = false;
 
 // Is this page waiting for a username and password? ServiceNow answers an
 // unauthenticated API request with an HTTP Basic challenge, and the browser
@@ -894,24 +912,93 @@ function pageWantsCredentials() {
     return /^\s*(?:log\s?in|sign\s?in)\b/i.test(String(document.title || ''));
 }
 
-function kaPing() {
-    // The page can turn into a sign-in screen after the timer was armed — for
-    // example when the session lapses while the tab sits in the background.
-    if (pageWantsCredentials()) { syncKeepAlive(); return; }
+function kaAge(ms) {
+    const s = Math.max(0, Math.round(ms / 1000));
+    if (s < 60) return s + 's';
+    const m = Math.round(s / 60);
+    return m < 60 ? m + 'm' : Math.round(m / 60) + 'h';
+}
 
-    const endpoint = SNAF_KEEPALIVE_ENDPOINTS[kaIdx];
-    fetch(location.origin + endpoint, {
-        method: 'GET', credentials: 'same-origin', cache: 'no-store'
-    }).then(res => {
-        if (!res.ok) kaIdx = (kaIdx + 1) % SNAF_KEEPALIVE_ENDPOINTS.length;
-    }).catch(() => {
-        kaIdx = (kaIdx + 1) % SNAF_KEEPALIVE_ENDPOINTS.length;
-    });
+// UI-level request. Only the status line is needed, so the body is cancelled at
+// once instead of being downloaded and thrown away.
+async function kaUiActivity() {
+    const ctrl  = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), SNAF_KEEPALIVE_TIMEOUT_MS) : null;
+    try {
+        const tk = await getToken();
+        const headers = { 'Accept': 'text/html' };
+        if (tk) headers['X-UserToken'] = tk;
+
+        const res = await fetch(location.origin + SNAF_KEEPALIVE_UI_URL +
+                '?sysparm_query=sys_id%3D-1&sysparm_limit=1&sysparm_cache=' + Date.now(), {
+            method: 'GET',
+            headers: headers,
+            credentials: 'same-origin',
+            redirect: 'manual',
+            cache: 'no-store',
+            signal: ctrl ? ctrl.signal : undefined
+        });
+
+        try { if (res.body && res.body.cancel) res.body.cancel().catch(() => {}); } catch (e) {}
+
+        if (res.type === 'opaqueredirect') return { kind: 'redirect', status: 0 };
+        return { kind: res.ok ? 'ok' : 'http', status: res.status };
+    } catch (e) {
+        return { kind: 'neterr', status: 0 };
+    } finally {
+        if (timer) clearTimeout(timer);
+    }
+}
+
+// API health check. `redirect: 'manual'` is what lets us tell a login redirect
+// apart from a network failure — XHR reports both as HTTP 0.
+async function kaHealth() {
+    const started = Date.now();
+    const ctrl    = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    let timedOut  = false;
+    const timer   = ctrl ? setTimeout(() => { timedOut = true; ctrl.abort(); }, SNAF_KEEPALIVE_TIMEOUT_MS) : null;
+    try {
+        const tk = await getToken();
+        const headers = { 'Accept': 'application/json' };
+        if (tk) headers['X-UserToken'] = tk;
+
+        const res = await fetch(location.origin + SNAF_KEEPALIVE_HEALTH_URL, {
+            method: 'GET',
+            headers: headers,
+            credentials: 'same-origin',
+            redirect: 'manual',
+            cache: 'no-store',
+            signal: ctrl ? ctrl.signal : undefined
+        });
+
+        let loggedIn = null;
+        try { loggedIn = res.headers.get('X-Is-Logged-In'); } catch (e) {}
+        const ms = Date.now() - started;
+
+        if (res.type === 'opaqueredirect') return { kind: 'redirect', status: 0, loggedIn: loggedIn, ms: ms };
+        if (res.ok) return { kind: 'ok', status: res.status, loggedIn: loggedIn, ms: ms };
+        return { kind: 'http', status: res.status, loggedIn: loggedIn, ms: ms };
+    } catch (e) {
+        return { kind: timedOut ? 'timeout' : 'neterr', status: 0, ms: Date.now() - started };
+    } finally {
+        if (timer) clearTimeout(timer);
+    }
+}
+
+function kaDescribe(info) {
+    if (info.kind === 'redirect') return 'redirected to a sign-in page';
+    if (info.kind === 'http')     return 'HTTP ' + info.status;
+    if (info.kind === 'timeout')  return 'no response within ' + (SNAF_KEEPALIVE_TIMEOUT_MS / 1000) + 's';
+    return 'network error';
+}
+
+function kaUiText(ui) {
+    return 'UI ' + ui.kind + (ui.status ? ' ' + ui.status : '');
 }
 
 function keepAliveWanted() {
     // Never ping a page that isn't an instance. Under an all-sites grant this
-    // script runs everywhere, and requesting /api/now/session on an unrelated
+    // script runs everywhere, and requesting /api/now/table/... on an unrelated
     // site would be pointless traffic against somebody else's server.
     if (snTrusted !== true) return false;
     if (pageWantsCredentials()) return false;
@@ -919,34 +1006,163 @@ function keepAliveWanted() {
     return !!settings.keepAlive.enabled;
 }
 
+function kaApply(health, ui) {
+    if (health.kind === 'ok' && ui.kind !== 'ok' && !kaUiWarned) {
+        kaUiWarned = true;
+        log('Keep-alive: the UI request failed (' + kaUiText(ui) + ') while the API check passed. ' +
+            'It may not extend this instance\'s session.', 'warn');
+    }
+
+    if (health.kind === 'ok') {
+        const wasLost = !kaSessionOk;
+        const failures = kaFailStreak;
+        kaSessionOk  = true;
+        kaFailStreak = 0;
+        kaLastOkTs   = Date.now();
+
+        if (wasLost) {
+            log('Session is back after ' + snafPlural(failures, 'failed check'), 'ok');
+            kaResumeAfterSession();
+            flushLogs();
+            return;
+        }
+
+        // Roughly one line every five minutes: enough to see the timeline
+        // without pushing the rest of the log out.
+        if (kaChecks === 1 || kaChecks % 7 === 0) {
+            log('Session OK · API ' + health.status + ' · ' + kaUiText(ui) +
+                ' · ' + health.ms + 'ms', 'dim');
+        }
+        return;
+    }
+
+    kaFailStreak++;
+
+    if (kaFailStreak === 1) {
+        log('Session check failed: ' + kaDescribe(health) + ' · ' + kaUiText(ui) +
+            ' · last OK ' + kaAge(Date.now() - kaLastOkTs) + ' ago. Retrying in ' +
+            SNAF_KEEPALIVE_RETRY_SECONDS + 's…', 'warn');
+    }
+
+    if (kaFailStreak === 3 && kaSessionOk) {
+        kaSessionOk = false;
+        if (engine === 'running') {
+            kaAutoPaused = true;
+            setEngine('paused');
+            log('Session lost: ' + kaDescribe(health) + '. Routing is paused and nothing will be ' +
+                'modified. Sign in again in this tab — it resumes automatically.', 'err');
+        } else {
+            log('Session lost: ' + kaDescribe(health) + '. Nothing will run until the session returns.', 'err');
+        }
+        flushLogs();
+    }
+
+    if (!kaSessionOk && kaFailStreak % 20 === 0) {
+        log('Still no session (' + kaFailStreak + ' failed checks)', 'err');
+    }
+
+    // Early failures retry quickly instead of waiting a full interval.
+    if (kaFailStreak < 3) kaScheduleRetry();
+}
+
+function kaResumeAfterSession() {
+    if (!kaAutoPaused) return;
+    kaAutoPaused = false;
+    if (engine !== 'paused') return;
+
+    setEngine('running');
+    log('Routing resumed', 'ok');
+    if (!tickTimer) runCycle();
+}
+
+async function kaCheck() {
+    if (kaBusy) return;                       // never run two checks at once
+    if (!keepAliveWanted()) { syncKeepAlive(); return; }
+
+    kaBusy       = true;
+    kaLastPingTs = Date.now();
+
+    const ui = await kaUiActivity();
+
+    // The page can turn into a sign-in screen mid-check. Stop rather than fire
+    // the API request and provoke another native credential dialog.
+    if (pageWantsCredentials()) {
+        kaBusy = false;
+        syncKeepAlive();
+        return;
+    }
+
+    const health = await kaHealth();
+    kaBusy = false;
+    kaChecks++;
+    kaApply(health, ui);
+}
+
+function armKaTimer(periodMs) {
+    if (kaTimer) clearTimeout(kaTimer);
+    kaTimer = setTimeout(() => {
+        kaTimer = null;
+        if (!keepAliveWanted()) { syncKeepAlive(); return; }
+        kaCheck();
+        armKaTimer(periodMs);
+    }, periodMs);
+}
+
+function kaScheduleRetry() {
+    if (kaRetryTimer) clearTimeout(kaRetryTimer);
+    kaRetryTimer = setTimeout(() => {
+        kaRetryTimer = null;
+        if (keepAliveWanted()) kaCheck();
+    }, SNAF_KEEPALIVE_RETRY_SECONDS * 1000);
+}
+
 function syncKeepAlive() {
     const want = keepAliveWanted();
 
     if (!want) {
-        if (kaTimer) { clearInterval(kaTimer); kaTimer = null; }
+        if (kaTimer) { clearTimeout(kaTimer); kaTimer = null; }
+        if (kaRetryTimer) { clearTimeout(kaRetryTimer); kaRetryTimer = null; }
         kaOn = false;
         elKa.classList.remove('is-on');
         return;
     }
 
-    const period = snafClampInt(settings.keepAlive.minutes,
-        SNAF_KEEPALIVE_MIN_MINUTES, SNAF_KEEPALIVE_MAX_MINUTES,
-        SNAF_KEEPALIVE_DEFAULT_MINUTES) * 60000;
+    const periodMs = snafClampInt(settings.keepAlive.seconds,
+        SNAF_KEEPALIVE_MIN_SECONDS, SNAF_KEEPALIVE_MAX_SECONDS,
+        SNAF_KEEPALIVE_DEFAULT_SECONDS) * 1000;
 
-    // Re-armed from scratch so an interval change takes effect immediately.
-    if (kaTimer) clearInterval(kaTimer);
-    kaTimer = setInterval(kaPing, period);
     elKa.classList.add('is-on');
 
     // Only ping straight away on the off → on transition, not on every repaint.
-    if (!kaOn) { kaOn = true; kaPing(); }
+    // A changed interval re-arms the chain, but does not ping early.
+    if (!kaOn) {
+        kaOn = true;
+        kaPeriodMs = periodMs;
+        armKaTimer(periodMs);
+        kaCheck();
+    } else if (kaPeriodMs !== periodMs) {
+        kaPeriodMs = periodMs;
+        armKaTimer(periodMs);
+    }
 }
 
-// A session that is going to lapse does it while the tab sits in the
-// background, so returning to the tab is exactly when a ping is worth making.
-document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && keepAliveWanted()) kaPing();
-});
+// A failed routing call is also a hint that the session may be gone: check
+// immediately instead of waiting for the next scheduled ping.
+function noteSessionProblem() {
+    if (keepAliveWanted()) kaCheck();
+}
+
+// A session that is going to lapse usually does it while the tab sits in the
+// background, so returning to the tab is exactly when a check is worth making.
+// Debounced because visibilitychange and focus often fire together.
+function kaCatchUp() {
+    if (document.hidden) return;
+    if (!keepAliveWanted()) { syncKeepAlive(); return; }
+    if (Date.now() - kaLastPingTs > 15000) kaCheck();
+}
+
+document.addEventListener('visibilitychange', kaCatchUp);
+window.addEventListener('focus', kaCatchUp);
 
 // ── Controls ──────────────────────────────────────────────────────────────────
 elStart.addEventListener('click', () => {
@@ -972,13 +1188,14 @@ elStart.addEventListener('click', () => {
 
 elPause.addEventListener('click', () => {
     if (engine === 'running')     { setEngine('paused');  log('Paused', 'warn'); }
-    else if (engine === 'paused') { setEngine('running'); log('Resumed', 'ok'); }
+    else if (engine === 'paused') { kaAutoPaused = false; setEngine('running'); log('Resumed', 'ok'); }
 });
 
 elStop.addEventListener('click', () => {
     clearInterval(tickTimer);
     tickTimer   = null;
     remainingMs = 0;
+    kaAutoPaused = false;
     setEngine('stopped');
     log('Engine stopped', 'warn');
     flushLogs();

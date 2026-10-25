@@ -1,5 +1,29 @@
 # Changelog
 
+## 4.1.2
+
+### Changed
+
+- **Session keep-alive now uses the logic from AssignFlow 1.7.1.** A REST call
+  on its own does not push a ServiceNow session timeout forward, so each check
+  first loads a tiny UI list page — a request of the kind the browser makes when
+  you click around — and then verifies the session with a one-row Table API
+  read. The interval is 45 seconds by default and is now set in seconds;
+  existing minute values are converted automatically on upgrade.
+- **A lost session is now handled instead of ignored.** Three failed checks in
+  a row pause a running dispatcher, log why, and stop modifying anything.
+  Checks keep running, and the next success resumes routing — signing in again
+  in that tab is all it takes. Early failures retry after 10 seconds, and
+  returning to a background tab triggers a check straight away.
+- A 401, 403 or login-page response from the engine also triggers an immediate
+  check, rather than waiting for the next timer tick.
+
+### Fixed
+
+- **The Chrome Web Store manifest description is now 117 characters.** The
+  previous text was 148 and was rejected by the store's 132-character limit. No
+  behaviour change.
+
 ## 4.1.1
 
 ### Fixed

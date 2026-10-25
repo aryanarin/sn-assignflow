@@ -68,7 +68,7 @@
     </div>
     <h1>SN Assignflow — Privacy Policy</h1>
   </header>
-  <div class="updated">Version 4.1.1</div>
+  <div class="updated">Version 4.1.2</div>
 
   <div class="lead">
     <p style="margin:0">
@@ -141,12 +141,15 @@
     </li>
   </ul>
   <p>
-    Plus the <strong>keep-alive ping</strong>: a <code>GET</code> to a small endpoint
-    on the same instance (<code>/api/now/session</code>, <code>/now/nav/header</code>
-    or <code>/stats.do</code>) on a timer you control. It sends only the session
-    cookie your browser already sends, reads nothing from the page, and keeps nothing
-    from the response. It can be switched off in Settings, though it is forced on
-    while the engine is running so an unattended run isn't ended by a logout.
+    Plus the <strong>keep-alive checks</strong>: two <code>GET</code>s to the same
+    instance on a timer you control. One loads a one-record UI list page
+    (<code>/incident_list.do</code>), which is what actually keeps the session
+    from timing out; the other reads a single incident row through the Table API
+    to confirm the session is still valid. They send only the session cookie your
+    browser already sends and keep nothing from the response. Keep-alive can be
+    switched off in Settings, though it is forced on while the engine is running
+    so an unattended run isn't ended by a logout. If the session is lost, a
+    running dispatcher pauses and resumes when you sign in again.
   </p>
   <p>
     Every one of these rides the ServiceNow session already open in that tab. The
