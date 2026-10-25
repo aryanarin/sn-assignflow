@@ -115,15 +115,63 @@ async function snafActiveSnTab() {
     return { tab, reason: null };
 }
 
-// Prefers the tab the user is looking at, then any other instance tab. Used by
-// the configuration page, which has no ServiceNow session of its own and so has
-// to borrow a tab to run a lookup through.
-async function snafAnySnTab() {
-    const matches = await snafUrlMatcher();
-    const active  = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (active[0] && matches(active[0].url)) return active[0];
-    const all = await chrome.tabs.query({});
-    return all.find(t => matches(t.url)) || null;
+// Answers a PING without injecting anything. A tab that replies already has the
+// content script, which is a reliable sign it is an instance the user works in —
+// useful when the only permission is the blanket <all_urls> grant, where the URL
+// alone says nothing.
+async function snafTabHasWidget(tabId) {
+    try { return !!(await chrome.tabs.sendMessage(tabId, { type: 'PING' })); }
+    catch (e) { return false; }
+}
+
+// Instance tabs the configuration page can borrow to run a lookup, best first.
+//
+// Granting access to all sites makes snafUrlMatcher accept every http(s) URL, so
+// "the first match" would be whatever tab happens to be leftmost — usually not
+// ServiceNow at all, and injecting there fails with a host-permission error.
+// Hosts we can actually name are therefore always tried first: the built-in
+// cloud domain, plus anything added through Settings → Instances. Only if none
+// of those are open do we consider other tabs, and then only ones already
+// running the content script, so an unrelated page is never injected into.
+async function snafSnTabCandidates() {
+    const granted = await snafGrantedHosts();
+
+    const httpish = url => {
+        let u;
+        try { u = new URL(url); } catch (e) { return null; }
+        return (u.protocol === 'https:' || u.protocol === 'http:') ? u : null;
+    };
+    const isNamedHost = url => {
+        const u = httpish(url);
+        return !!u && snafHostAllowed(u.hostname, granted.patterns);
+    };
+
+    const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const all      = await chrome.tabs.query({});
+
+    const out  = [];
+    const seen = new Set();
+    const push = t => {
+        if (!t || t.id == null || seen.has(t.id)) return;
+        seen.add(t.id);
+        out.push(t);
+    };
+
+    // The tab the user is looking at wins, then every other named instance.
+    if (active && isNamedHost(active.url)) push(active);
+    all.forEach(t => { if (isNamedHost(t.url)) push(t); });
+
+    if (!granted.all) return out;
+
+    // Blanket grant: fall back to tabs that already answer a PING.
+    const extras = [];
+    if (active && httpish(active.url) && !seen.has(active.id)) extras.push(active);
+    all.forEach(t => { if (httpish(t.url) && !seen.has(t.id)) extras.push(t); });
+
+    const answered = await Promise.all(extras.map(t => snafTabHasWidget(t.id)));
+    extras.forEach((t, i) => { if (answered[i]) push(t); });
+
+    return out;
 }
 
 async function snafSnTabs() {
@@ -131,6 +179,54 @@ async function snafSnTabs() {
     const all     = await chrome.tabs.query({});
     return all.filter(t => matches(t.url));
 }
+
+// ── Per-tab widget state ──────────────────────────────────────────────────────
+// Showing the widget is a per-tab action. Keeping that state in storage.local —
+// the obvious thing, and what this used to do — leaks it into every new
+// ServiceNow tab, which is the reported bug. Visibility therefore lives in
+// storage.session under the tab's own id: it survives a reload or a navigation
+// in that tab, and a new tab simply has no entry yet.
+const SNAF_TAB_UI_PREFIX = 'snafTabUi:';
+const snafTabUiMemory    = new Map();
+
+function snafTabUiKey(tabId) {
+    return SNAF_TAB_UI_PREFIX + tabId;
+}
+
+async function snafTabUiGet(tabId) {
+    if (tabId == null) return null;
+    const key = snafTabUiKey(tabId);
+    try {
+        const store = await chrome.storage.session.get(key);
+        if (store && store[key]) return store[key];
+    } catch (e) { /* storage.session unavailable — use the in-memory copy */ }
+    return snafTabUiMemory.get(key) || null;
+}
+
+async function snafTabUiSet(tabId, ui) {
+    if (tabId == null) return { ok: false, reason: 'no_tab' };
+
+    const key   = snafTabUiKey(tabId);
+    const value = { visible: !!(ui && ui.visible), minimized: !!(ui && ui.minimized) };
+    snafTabUiMemory.set(key, value);
+
+    try {
+        const patch = {};
+        patch[key] = value;
+        await chrome.storage.session.set(patch);
+    } catch (e) { /* the copy above keeps this working while the worker lives */ }
+    return { ok: true };
+}
+
+async function snafTabUiClear(tabId) {
+    const key = snafTabUiKey(tabId);
+    snafTabUiMemory.delete(key);
+    try { await chrome.storage.session.remove(key); } catch (e) {}
+}
+
+// A closed tab's entry is never read again. Removing it immediately keeps the
+// session area from filling up over a long browser session.
+chrome.tabs.onRemoved.addListener(tabId => { snafTabUiClear(tabId).catch(() => {}); });
 
 // ── Handlers ─────────────────────────────────────────────────────────────────
 async function snafOpenConfig(section) {
@@ -223,25 +319,39 @@ async function snafReadToken(sender) {
 // page, so it has no instance origin and no session cookie. It hands the terms
 // here and they are resolved inside a real ServiceNow tab.
 async function snafLookupUsers(terms) {
-    const tab = await snafAnySnTab();
-    if (!tab) return { ok: false, reason: 'no_sn_tab' };
-    try {
-        await snafEnsureContentScript(tab.id);
-        const res = await chrome.tabs.sendMessage(tab.id, { type: 'RESOLVE_USERS', terms });
+    const tabs = await snafSnTabCandidates();
+    if (!tabs.length) return { ok: false, reason: 'no_sn_tab' };
+
+    // Every candidate is tried before giving up. One unreachable tab — a page
+    // still loading, a restricted URL, a stale process — must not condemn the
+    // lookup when another instance tab is sitting right there.
+    const problems = [];
+    for (const tab of tabs) {
         let host = '';
         try { host = new URL(tab.url).hostname; } catch (e) {}
-        return Object.assign({ ok: true, host }, res || {});
-    } catch (e) {
-        return { ok: false, reason: 'unreachable', error: String(e && e.message || e) };
+        try {
+            await snafEnsureContentScript(tab.id);
+            const res = await chrome.tabs.sendMessage(tab.id, { type: 'RESOLVE_USERS', terms });
+            if (res && res.ok !== false) return Object.assign({ ok: true, host }, res);
+            problems.push((host || 'tab ' + tab.id) + ': ' +
+                          ((res && res.error) || 'no answer from the page'));
+        } catch (e) {
+            problems.push((host || 'tab ' + tab.id) + ': ' + String(e && e.message || e));
+        }
     }
+    return { ok: false, reason: 'unreachable', error: problems.join('; '), tried: tabs.length };
 }
 
 // ── Dispatch ─────────────────────────────────────────────────────────────────
 async function snafHandle(msg, sender) {
+    const tabId = sender && sender.tab ? sender.tab.id : null;
+
     switch (msg.type) {
         case 'OPEN_CONFIG':    return snafOpenConfig(msg.section);
         case 'LAUNCH_WIDGET':  return snafToggleWidget();
         case 'POPUP_STATE':    return snafPopupState();
+        case 'TAB_UI_GET':     return { ok: true, ui: await snafTabUiGet(tabId) };
+        case 'TAB_UI_SET':     return snafTabUiSet(tabId, msg);
         case 'CONFIG_UPDATED': return snafBroadcastConfig();
         case 'READ_TOKEN':     return snafReadToken(sender);
         case 'LOOKUP_USERS':   return snafLookupUsers(msg.terms || []);

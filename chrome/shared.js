@@ -17,8 +17,9 @@ var SNAF_KEY_THEME    = 'snDispatcherTheme';
 var SNAF_KEY_USERS    = 'snafUsers';
 var SNAF_KEY_SETTINGS = 'snafSettings';
 var SNAF_KEY_LOGS     = 'snafLogs';
-// Widget placement and open/minimised state, so a ServiceNow navigation doesn't
-// throw the widget away. Local to the machine and never part of an export.
+// Where the widget was last dragged to. The open/minimised state is deliberately
+// not stored here: it is scoped to a single tab (see background.js), so opening
+// a new ServiceNow tab starts clean while a reload keeps what that tab had.
 var SNAF_KEY_UI       = 'snafUi';
 // Instances the user has granted access to beyond the built-in cloud pattern.
 // SNAF_KEY_DOMAINS holds match patterns ('*://host/*'); SNAF_KEY_ALLURLS is the
@@ -27,6 +28,42 @@ var SNAF_KEY_DOMAINS  = 'snafCustomDomains';
 var SNAF_KEY_ALLURLS  = 'snafAllUrls';
 
 var SNAF_EXPORT_VERSION = '4.0';
+
+// ── Project contact ───────────────────────────────────────────────────────────
+// One address for bug reports, questions and feature requests. Kept here so the
+// popup and the configuration page cannot drift apart, and expressed as a
+// mailto: so nothing is ever sent to a server this project controls.
+var SNAF_CONTACT_EMAIL = 'contact@davagni.eu.org';
+
+// Appearance is one global preference rather than a per-surface setting: the
+// configuration page, the toolbar popup and the on-page widget all read the same
+// key, and changing it anywhere repaints the others. Light is the default, which
+// is what a value that was never written resolves to.
+function snafNormaliseTheme(value) {
+    return value === 'dark' ? 'dark' : 'light';
+}
+
+// A bug report is only useful with the version, the browser and the ServiceNow
+// shell in it, so the body arrives pre-structured with those fields. The user
+// still sees and edits everything before their mail client sends it.
+function snafBugReportMailto(version, userAgent) {
+    var v    = version   || 'unknown';
+    var ua   = userAgent || 'unknown';
+    var body =
+        'What happened\n\n\n' +
+        'What I expected instead\n\n\n' +
+        'Steps to reproduce\n' +
+        '1. \n2. \n3. \n\n' +
+        '--- details below help a great deal, please leave them in ---\n' +
+        'SN Assignflow: ' + v + '\n' +
+        'Browser: ' + ua + '\n' +
+        'ServiceNow shell (UI16 or Now Experience): \n' +
+        'Instance release (Washington, Xanadu, …): \n';
+
+    return 'mailto:' + SNAF_CONTACT_EMAIL +
+           '?subject=' + encodeURIComponent('SN Assignflow — bug report (v' + v + ')') +
+           '&body='    + encodeURIComponent(body);
+}
 
 // ── Instance hosts ────────────────────────────────────────────────────────────
 // Only ServiceNow's own cloud domain is built in. Anything else — an on-premise

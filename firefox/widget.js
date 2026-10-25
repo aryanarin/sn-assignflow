@@ -39,6 +39,11 @@ let totalCount    = 0;
 let cycleCount    = 0;
 let scopeId       = null;
 
+let theme         = 'light';
+// Set as soon as the user changes visibility or position, so an async first
+// load that resolves late cannot undo the click they just made.
+let uiTouched     = false;
+
 let token         = null;
 let tokenTried    = false;
 
@@ -62,13 +67,16 @@ const SVG = {
     sliders:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h9"/><path d="M19 7h1"/><path d="M4 17h1"/><path d="M11 17h9"/><circle cx="16" cy="7" r="2.3"/><circle cx="8" cy="17" r="2.3"/></svg>',
     pulse:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2.5-6 4 13 2.5-7h7"/></svg>',
     warn:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5 3.2 19.5h17.6z"/><path d="M12 10v4"/><path d="M12 17.2h.01"/></svg>',
-    info:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.6"/><path d="M12 11v5"/><path d="M12 7.9h.01"/></svg>'
+    info:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.6"/><path d="M12 11v5"/><path d="M12 7.9h.01"/></svg>',
+    sun:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2M12 19.4v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2.6 12h2M19.4 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>',
+    moon:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.4 8.4 0 1 0 10.5 10.5z"/></svg>'
 };
 
 // ── Shell ─────────────────────────────────────────────────────────────────────
 const host = document.createElement('div');
 host.id = 'snaf-widget';
 host.style.display = 'none';
+host.setAttribute('data-theme', 'light');
 host.setAttribute('role', 'complementary');
 host.setAttribute('aria-label', 'SN Assignflow dispatcher');
 host.innerHTML =
@@ -89,6 +97,7 @@ host.innerHTML =
           '<div id="snaf-head-state">Stopped</div>' +
         '</div>' +
         '<div id="snaf-head-btns">' +
+          '<button class="snaf-hbtn" id="snaf-theme" title="Switch to dark theme" aria-label="Switch to dark theme">' + SVG.moon + '</button>' +
           '<button class="snaf-hbtn" id="snaf-min" title="Minimise" aria-label="Minimise">' + SVG.minimize + '</button>' +
           '<button class="snaf-hbtn close" id="snaf-close" title="Close widget" aria-label="Close widget">' + SVG.close + '</button>' +
         '</div>' +
@@ -145,6 +154,7 @@ const elPanel     = $('snaf-panel');
 const elHead      = $('snaf-head');
 const elDot       = $('snaf-dot');
 const elHeadState = $('snaf-head-state');
+const elTheme     = $('snaf-theme');
 const elMin       = $('snaf-min');
 const elClose     = $('snaf-close');
 const elSession   = $('snaf-s-session');
@@ -274,6 +284,29 @@ async function resolveTrust() {
     return snafLooksLikeServiceNow(document, location);
 }
 
+// ── Theme ─────────────────────────────────────────────────────────────────────
+// One preference shared with the popup and the configuration page. Changing it
+// here writes storage, which repaints those surfaces; their toggles repaint this
+// widget through the storage listener at the bottom of the file.
+function applyTheme(next) {
+    theme = snafNormaliseTheme(next);
+    host.setAttribute('data-theme', theme);
+
+    const label = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+    elTheme.innerHTML = theme === 'dark' ? SVG.sun : SVG.moon;
+    elTheme.title = label;
+    elTheme.setAttribute('aria-label', label);
+}
+
+elTheme.addEventListener('click', e => {
+    e.stopPropagation();
+    const next = theme === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    const patch = {};
+    patch[SNAF_KEY_THEME] = next;
+    chrome.storage.local.set(patch).catch(() => {});
+});
+
 // ── Visibility ────────────────────────────────────────────────────────────────
 function paintVisibility() {
     host.style.display = visible ? '' : 'none';
@@ -282,14 +315,34 @@ function paintVisibility() {
 }
 
 function saveUi() {
+    uiTouched = true;
+
     const patch = {};
     patch[SNAF_KEY_UI] = {
-        visible:   visible,
-        minimized: minimized,
-        left:      host.style.left   || '',
-        top:       host.style.top    || ''
+        left: host.style.left || '',
+        top:  host.style.top  || ''
     };
     chrome.storage.local.set(patch).catch(() => {});
+
+    // Visibility is per tab (see background.js). Writing it to local storage,
+    // as this used to, is what made every new tab open with the widget already
+    // on screen.
+    try {
+        chrome.runtime.sendMessage({
+            type:      'TAB_UI_SET',
+            visible:   visible,
+            minimized: minimized
+        }).catch(() => {});
+    } catch (e) { /* extension reloaded while this tab was open */ }
+}
+
+async function readTabUi() {
+    try {
+        const res = await chrome.runtime.sendMessage({ type: 'TAB_UI_GET' });
+        return (res && res.ok && res.ui) || null;
+    } catch (e) {
+        return null;
+    }
 }
 
 function showWidget()  { visible = true;  minimized = false; paintVisibility(); saveUi(); }
@@ -347,6 +400,25 @@ document.addEventListener('mouseup', () => {
     elHead.classList.remove('is-dragging');
     saveUi();
 });
+
+// A position saved on a larger window would otherwise leave the widget outside
+// the viewport after a resize or a move to a smaller monitor.
+function clampInsideViewport() {
+    if (!host.style.left && !host.style.top) return;
+
+    const rect = host.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+
+    const left = Math.max(0, Math.min(rect.left, window.innerWidth  - rect.width));
+    const top  = Math.max(0, Math.min(rect.top,  window.innerHeight - rect.height));
+    host.style.left   = left + 'px';
+    host.style.top    = top  + 'px';
+    host.style.right  = 'auto';
+    host.style.bottom = 'auto';
+}
+
+window.addEventListener('resize', clampInsideViewport);
+window.addEventListener('orientationchange', clampInsideViewport);
 
 // ── Engine state painting ─────────────────────────────────────────────────────
 function activeGroupCount() {
@@ -431,6 +503,10 @@ async function getToken() {
 }
 
 async function apiFetch(method, path, body) {
+    if (pageWantsCredentials()) {
+        throw new Error('Not signed in — sign in to the instance, then start again');
+    }
+
     const tk      = await getToken();
     const headers = { 'Accept': 'application/json' };
     if (tk) headers['X-UserToken'] = tk;
@@ -746,7 +822,7 @@ async function processGroup(g, ctx) {
         } else {
             log(num + ' failed: ' + err, 'err', true);
             // A session problem will hit every remaining ticket, so stop early.
-            if (/session expired|not authorised/i.test(err)) {
+            if (/session expired|not authorised|not signed in/i.test(err)) {
                 log('halting this group', 'err', true);
                 break;
             }
@@ -803,7 +879,26 @@ let kaTimer = null;
 let kaIdx   = 0;
 let kaOn    = false;
 
+// Is this page waiting for a username and password? ServiceNow answers an
+// unauthenticated API request with an HTTP Basic challenge, and the browser
+// turns that into its own native sign-in dialog sitting on top of the login
+// form — which reads as the extension asking for a second login. The extension
+// has no credentials to offer, so it must not make the request at all. The
+// check errs towards silence: a false positive only delays a keep-alive.
+function pageWantsCredentials() {
+    const path = String(location.pathname || '');
+    if (/\/(?:login|logout|signin|sign-in|auth|oauth|sso)(?:[./]|$)/i.test(path)) return true;
+
+    if (document.querySelector('input[type="password"], #passwd, #user_name')) return true;
+
+    return /^\s*(?:log\s?in|sign\s?in)\b/i.test(String(document.title || ''));
+}
+
 function kaPing() {
+    // The page can turn into a sign-in screen after the timer was armed — for
+    // example when the session lapses while the tab sits in the background.
+    if (pageWantsCredentials()) { syncKeepAlive(); return; }
+
     const endpoint = SNAF_KEEPALIVE_ENDPOINTS[kaIdx];
     fetch(location.origin + endpoint, {
         method: 'GET', credentials: 'same-origin', cache: 'no-store'
@@ -819,6 +914,7 @@ function keepAliveWanted() {
     // script runs everywhere, and requesting /api/now/session on an unrelated
     // site would be pointless traffic against somebody else's server.
     if (snTrusted !== true) return false;
+    if (pageWantsCredentials()) return false;
     if (engine !== 'stopped' && settings.keepAlive.forceWhileRunning) return true;
     return !!settings.keepAlive.enabled;
 }
@@ -914,12 +1010,14 @@ function rebuildScope() {
 
 async function loadState(firstRun) {
     const store = await chrome.storage.local.get([
-        SNAF_KEY_GROUPS, SNAF_KEY_STATS, SNAF_KEY_SETTINGS, SNAF_KEY_USERS, SNAF_KEY_UI
+        SNAF_KEY_GROUPS, SNAF_KEY_STATS, SNAF_KEY_SETTINGS, SNAF_KEY_USERS,
+        SNAF_KEY_UI, SNAF_KEY_THEME
     ]);
 
     groups    = Array.isArray(store[SNAF_KEY_GROUPS]) ? store[SNAF_KEY_GROUPS] : [];
     settings  = snafNormaliseSettings(store[SNAF_KEY_SETTINGS]);
     directory = snafNormaliseUsers(store[SNAF_KEY_USERS]);
+    applyTheme(store[SNAF_KEY_THEME]);
 
     // Re-resolved on every load, not just the first: the page may have finished
     // rendering its shell since, which is what the detection heuristic reads.
@@ -941,17 +1039,30 @@ async function loadState(firstRun) {
 
     if (firstRun) {
         const ui = store[SNAF_KEY_UI] || {};
-        visible   = !!ui.visible;
-        minimized = !!ui.minimized;
-        if (ui.left && ui.top) {
-            host.style.left   = ui.left;
-            host.style.top    = ui.top;
-            host.style.right  = 'auto';
-            host.style.bottom = 'auto';
+        // Ask the background what this tab had open. A tab that was never
+        // shown gets nothing back and stays hidden, whatever other tabs are
+        // doing — this is the per-tab boundary.
+        const tabUi = await readTabUi();
+
+        // A launch from the popup may have landed while that round trip was in
+        // flight. The user's click wins over the state we just loaded.
+        if (!uiTouched) {
+            visible   = !!(tabUi && tabUi.visible);
+            minimized = !!(tabUi && tabUi.minimized);
+            if (ui.left && ui.top) {
+                host.style.left   = ui.left;
+                host.style.top    = ui.top;
+                host.style.right  = 'auto';
+                host.style.bottom = 'auto';
+            }
         }
+
         paintVisibility();
+        if (visible) {
+            clampInsideViewport();
+            log('Ready on ' + location.hostname, 'dim');
+        }
         setEngine('stopped');
-        if (visible) log('Ready on ' + location.hostname, 'dim');
     } else {
         setEngine(engine);
     }
@@ -1021,6 +1132,9 @@ chrome.storage.onChanged.addListener((changes, area) => {
     }
     if (changes[SNAF_KEY_USERS]) {
         directory = snafNormaliseUsers(changes[SNAF_KEY_USERS].newValue);
+    }
+    if (changes[SNAF_KEY_THEME]) {
+        applyTheme(changes[SNAF_KEY_THEME].newValue);
     }
 });
 

@@ -145,11 +145,31 @@ async function loadAll() {
     directory  = snafNormaliseUsers(store[SNAF_KEY_USERS]);
     settings   = snafNormaliseSettings(store[SNAF_KEY_SETTINGS]);
     logEntries = Array.isArray(store[SNAF_KEY_LOGS]) ? store[SNAF_KEY_LOGS] : [];
-    applyTheme(store[SNAF_KEY_THEME] === 'dark' ? 'dark' : 'light');
+    applyTheme(snafNormaliseTheme(store[SNAF_KEY_THEME]));
 }
 
 function notifyTabs() {
     chrome.runtime.sendMessage({ type: 'CONFIG_UPDATED' }).catch(() => {});
+}
+
+// Puts a deadline on a background round trip. Under Manifest V3 the worker can
+// be torn down while a request is in flight, and sendMessage then settles
+// neither way — so anything that disables a control while it waits needs a
+// deadline, or the control never comes back.
+//
+// Takes the promise rather than the message so the sendMessage call stays
+// written out at the call site, where tools/check-wiring.js can still see which
+// message types this page sends.
+function withTimeout(promise, ms) {
+    let timer;
+    return Promise.race([
+        Promise.resolve(promise).finally(() => clearTimeout(timer)),
+        new Promise((resolve, reject) => {
+            timer = setTimeout(
+                () => reject(new Error('the background worker did not answer in time')),
+                ms || 20000);
+        })
+    ]);
 }
 
 async function saveGroups(notify) {
@@ -162,7 +182,12 @@ async function saveGroups(notify) {
 
 async function saveDirectory() {
     const patch = {};
-    patch[SNAF_KEY_USERS] = directory;
+    // Blank rows are never persisted: snafNormaliseUsers discards them on the
+    // way back in, so storing one would write a record that reads as nothing.
+    // What goes to storage is therefore exactly what the onChanged handler
+    // compares against, which is what lets this page recognise its own write
+    // and leave the field being typed into alone.
+    patch[SNAF_KEY_USERS] = directory.filter(u => !isBlankUser(u));
     await chrome.storage.local.set(patch);
     paintCounts();
 }
@@ -197,6 +222,55 @@ async function setTheme(next) {
     const patch = {};
     patch[SNAF_KEY_THEME] = next;
     await chrome.storage.local.set(patch);
+}
+
+// ── Support and bug reports ───────────────────────────────────────────────────
+// Support is a modal rather than a section: it is something you visit once, not
+// somewhere you work. The popup asks for it by loading config.html#support, so
+// that hash is intercepted below instead of being routed like a section.
+const SUPPORT_HASH = 'support';
+
+function extensionVersion() {
+    try { return chrome.runtime.getManifest().version || '4.1.1'; }
+    catch (e) { return '4.1.1'; }
+}
+
+function openSupport() {
+    $('supportBackdrop').hidden = false;
+    $('btnSupportDone').focus();
+}
+
+function closeSupport() {
+    $('supportBackdrop').hidden = true;
+}
+
+function wireSupport() {
+    // config.html already carries a working mailto. This widens it to include
+    // the version and the browser, which is most of what a report needs.
+    $('btnReportBug').href = snafBugReportMailto(extensionVersion(), navigator.userAgent);
+
+    $('btnSupport').addEventListener('click', openSupport);
+    $('btnSupportX').addEventListener('click', closeSupport);
+    $('btnSupportDone').addEventListener('click', closeSupport);
+
+    // The backdrop closes; the panel itself must not.
+    $('supportBackdrop').addEventListener('click', e => {
+        if (e.target === $('supportBackdrop')) closeSupport();
+    });
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && !$('supportBackdrop').hidden) closeSupport();
+    });
+
+    $('btnCopyUpi').addEventListener('click', async () => {
+        const id = $('upiIdText').textContent.trim();
+        try {
+            await navigator.clipboard.writeText(id);
+            toast('UPI ID copied', 'ok');
+        } catch (e) {
+            toast('Could not copy — select the ID and copy it by hand', 'err');
+        }
+    });
 }
 
 // ── Navigation ────────────────────────────────────────────────────────────────
@@ -236,7 +310,16 @@ function go(next, fromHash) {
 document.querySelectorAll('.rail-item').forEach(btn => {
     btn.addEventListener('click', () => go(btn.dataset.section));
 });
-window.addEventListener('hashchange', () => go(location.hash.slice(1), true));
+window.addEventListener('hashchange', () => {
+    // #support is a request to open the modal, not to navigate. Put the hash
+    // back to whatever section is on screen so the URL stays truthful.
+    if (location.hash.slice(1) === SUPPORT_HASH) {
+        openSupport();
+        location.hash = section;
+        return;
+    }
+    go(location.hash.slice(1), true);
+});
 
 // ── Dirty tracking ────────────────────────────────────────────────────────────
 function setDirty(on) {
@@ -1223,7 +1306,37 @@ function queueDirSave() {
     dirSaveTimer = setTimeout(() => { saveDirectory().catch(() => {}); }, 400);
 }
 
+// Which field is being edited, so a rebuild can put the cursor back. Re-rendering
+// replaces every row element, which would otherwise drop focus mid-word whenever
+// anything at all asked for a repaint — the engine resolving a sys_id, another
+// tab writing, a debounced save landing.
+function captureDirFocus() {
+    const el = document.activeElement;
+    if (!el || !elDirTable.contains(el) || !el.dataset || !el.dataset.dirUid) return null;
+    return {
+        uid:   el.dataset.dirUid,
+        field: el.dataset.dirField,
+        start: el.selectionStart,
+        end:   el.selectionEnd
+    };
+}
+
+function restoreDirFocus(saved) {
+    if (!saved) return;
+    // Matched by walking the inputs rather than through a selector, because a uid
+    // can come from an imported file and must never be interpolated into one.
+    const inputs = elDirTable.querySelectorAll('input[data-dir-uid]');
+    Array.prototype.some.call(inputs, el => {
+        if (el.dataset.dirUid !== saved.uid || el.dataset.dirField !== saved.field) return false;
+        el.focus();
+        try { el.setSelectionRange(saved.start, saved.end); } catch (e) { /* not a text input */ }
+        return true;
+    });
+}
+
 function renderDirectory() {
+    const keepFocus = captureDirFocus();
+
     // Drop selections for people who no longer exist, so a stale uid can't keep
     // the bulk bar showing a count that doesn't match anything.
     if (dirSelection.size) {
@@ -1341,6 +1454,8 @@ function renderDirectory() {
         nameIn.className   = 'dir-name-input';
         nameIn.value       = u.name || '';
         nameIn.placeholder = 'Full name';
+        nameIn.dataset.dirUid   = u.uid;
+        nameIn.dataset.dirField = 'name';
         nameIn.addEventListener('input', () => {
             u.name = nameIn.value;
             av.textContent = snafInitials(u.name || u.user_name);
@@ -1356,6 +1471,8 @@ function renderDirectory() {
         uidIn.className   = 'dir-cell-input';
         uidIn.value       = u.user_name || '';
         uidIn.placeholder = 'user ID';
+        uidIn.dataset.dirUid   = u.uid;
+        uidIn.dataset.dirField = 'user_name';
         uidIn.addEventListener('input', () => { u.user_name = uidIn.value.trim(); queueDirSave(); });
         uidCell.appendChild(uidIn);
         row.appendChild(uidCell);
@@ -1366,6 +1483,8 @@ function renderDirectory() {
         sysIn.className   = 'dir-cell-input';
         sysIn.value       = u.sys_id || '';
         sysIn.placeholder = 'not resolved yet';
+        sysIn.dataset.dirUid   = u.uid;
+        sysIn.dataset.dirField = 'sys_id';
         function markSys() {
             const v = sysIn.value.trim();
             sysIn.classList.toggle('is-bad', !!v && !snafIsSysId(v));
@@ -1399,6 +1518,7 @@ function renderDirectory() {
         elDirTable.appendChild(row);
     });
 
+    restoreDirFocus(keepFocus);
     paintBulk();
 }
 
@@ -1424,15 +1544,22 @@ $('btnDirSelectAll').addEventListener('click', () => {
     renderDirectory();
 });
 
-$('btnDirAdd').addEventListener('click', async () => {
+$('btnDirAdd').addEventListener('click', () => {
     // Built directly rather than through snafNormaliseUser, which rejects a
     // wholly empty record — here the empty row is the point.
     directory.unshift({
         uid: snafUid(), name: '', user_name: '', sys_id: '',
         email: '', note: '', addedAt: new Date().toISOString()
     });
-    await saveDirectory();
+
+    // Deliberately not saved. snafNormaliseUsers drops a record with no name,
+    // user ID or sys_id, so writing a blank row would store something that
+    // reads back as nothing — and the resulting storage echo would delete the
+    // row the moment it appeared. It is persisted by queueDirSave() as soon as
+    // the first character is typed, which is also what keeps an abandoned blank
+    // row from surviving a reload.
     $('dirSearch').value = '';
+    paintCounts();
     renderDirectory();
     const first = elDirTable.querySelector('.dir-name-input');
     if (first) first.focus();
@@ -1523,26 +1650,32 @@ $('btnDirResolve').addEventListener('click', async () => {
     }
 
     const btn = $('btnDirResolve');
-    btn.disabled = true;
     const original = btn.textContent;
+    btn.disabled = true;
     btn.textContent = 'Resolving…';
 
     let res;
     try {
-        res = await chrome.runtime.sendMessage({
+        res = await withTimeout(chrome.runtime.sendMessage({
             type: 'LOOKUP_USERS',
             terms: pending.map(u => u.user_name)
-        });
+        }));
     } catch (e) {
         res = { ok: false, error: String(e && e.message || e) };
+    } finally {
+        // In a finally so the control always comes back. An event-page worker can
+        // be torn down mid-request, and a button left reading "Resolving…" for
+        // the rest of the session is indistinguishable from a dead feature.
+        btn.disabled = false;
+        btn.textContent = original;
     }
-
-    btn.disabled = false;
-    btn.textContent = original;
 
     if (!res || !res.ok) {
         if (res && res.reason === 'no_sn_tab') {
-            toast('Open a ServiceNow tab first — the lookup runs through your session there', 'err');
+            // Either no instance is open, or it is open on a host the extension
+            // has not been told about — the second case is the easy one to miss.
+            toast('No usable ServiceNow tab. Open your instance, and if it is not on ' +
+                  'service-now.com add its address under Settings → Instances', 'err');
         } else {
             toast('Lookup failed' + (res && res.error ? ': ' + res.error : ''), 'err');
         }
@@ -2039,8 +2172,8 @@ async function renderAbout() {
     let manifest = {};
     try { manifest = chrome.runtime.getManifest(); } catch (e) {}
 
-    $('aboutVer').textContent   = 'Version ' + (manifest.version || '4.0.0');
-    $('railVersion').textContent = 'v' + (manifest.version || '4.0.0');
+    $('aboutVer').textContent   = 'Version ' + (manifest.version || '4.1.1');
+    $('railVersion').textContent = 'v' + (manifest.version || '4.1.1');
 
     // Built-in hosts come from the manifest; anything else was granted by the
     // user at runtime, so it has to be read from storage rather than the build.
@@ -2111,8 +2244,23 @@ function sameJson(a, b) {
     catch (e) { return false; }
 }
 
+// A row with nothing in it yet. These live only in memory — snafNormaliseUsers
+// discards them — so they have to be carried across an incoming storage change
+// by hand, or a write from the engine or another tab would delete the blank row
+// someone is part-way through filling in.
+function isBlankUser(u) {
+    return !!u && !u.name && !u.user_name && !u.sys_id;
+}
+
 chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
+
+    // Theme can be switched from the popup or the widget while this page is
+    // open. There is nothing to dirty-track here — it is presentation only.
+    if (changes[SNAF_KEY_THEME]) {
+        const next = snafNormaliseTheme(changes[SNAF_KEY_THEME].newValue);
+        if (document.documentElement.getAttribute('data-theme') !== next) applyTheme(next);
+    }
 
     if (changes[SNAF_KEY_LOGS]) {
         const next = Array.isArray(changes[SNAF_KEY_LOGS].newValue) ? changes[SNAF_KEY_LOGS].newValue : [];
@@ -2124,9 +2272,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
     // The engine caches resolved sys_ids back into the directory as it runs.
     if (changes[SNAF_KEY_USERS]) {
-        const raw = changes[SNAF_KEY_USERS].newValue;
-        if (!sameJson(raw, directory)) {
-            directory = snafNormaliseUsers(raw);
+        const raw   = changes[SNAF_KEY_USERS].newValue;
+        const blank = directory.filter(isBlankUser);
+        // Compare against the persisted shape of what is on screen, so this
+        // page's own write is still recognised once blank rows are excluded.
+        if (!sameJson(raw, directory.filter(u => !isBlankUser(u)))) {
+            directory = blank.concat(snafNormaliseUsers(raw));
             paintCounts();
             if (section === 'agents') renderDirectory();
         }
@@ -2150,6 +2301,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
     wireRules();
     wireSettings();
+    wireSupport();
 
     paintCounts();
     renderGroupList();
@@ -2157,7 +2309,16 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
     // Not flagged as coming from the hash: go() short-circuits on a no-op
     // navigation, and the first call has to actually paint the section.
-    go(location.hash.slice(1) || 'groups');
+    //
+    // Arriving on #support means the popup asked for the Support panel. About is
+    // the section it belongs behind, so paint that first and then open it.
+    const startHash = location.hash.slice(1);
+    if (startHash === SUPPORT_HASH) {
+        go('about');
+        openSupport();
+    } else {
+        go(startHash || 'groups');
+    }
 })().catch(e => {
     toast('Could not load your configuration: ' + (e && e.message || e), 'err');
 });

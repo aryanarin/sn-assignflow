@@ -51,9 +51,9 @@ Firefox only:
 The ID is **carried over unchanged from AssignFlow 3.2.0**. That is deliberate:
 it makes this an update to the existing add-on rather than a second one, so
 users keep the configuration already in their storage. It is also why the version
-is `4.0.0` and not `1.0.0` — addons.mozilla.org requires a strictly increasing
-version for a given add-on ID, and `1.0.0` would be rejected as older than
-`3.2.0`.
+continues the `4.x` line rather than restarting at `1.0.0` — addons.mozilla.org
+requires a strictly increasing version for a given add-on ID, and `1.0.0` would
+be rejected as older than `3.2.0`.
 
 `data_collection_permissions: ["none"]` is required by recent AMO submissions and
 is accurate: nothing is collected.

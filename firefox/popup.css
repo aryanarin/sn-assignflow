@@ -1,28 +1,34 @@
 /* SN Assignflow — toolbar popup
  *
- * The popup is ink-dark in both themes. It reads as a product surface rather
- * than a page, and it is the one place the brand colour carries the whole
- * composition, exactly as in the design.
+ * Follows the extension-wide light/dark preference, so the popup, the widget and
+ * the configuration page never disagree. The identity card keeps its gradient in
+ * dark mode; in light mode it becomes an ordinary raised surface.
  */
 
 body {
   width: 258px;
-  background: var(--ink);
-  color: var(--lavender);
+  background: var(--canvas);
+  color: var(--text);
   padding: 14px;
   overflow: hidden;
 }
 
 /* ── Identity card ───────────────────────────────────────────────────────── */
 .card {
-  background: linear-gradient(160deg, #262059 0%, #1E1B4B 100%);
-  border: 1px solid var(--ink-line);
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  padding: 15px 16px;
+  padding: 13px 14px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+html[data-theme="dark"] .card {
+  background: linear-gradient(160deg, #262059 0%, #1E1B4B 100%);
+  border-color: var(--ink-line);
+  box-shadow: none;
 }
 .card-mark {
   width: 38px;
@@ -35,25 +41,30 @@ body {
   flex-shrink: 0;
 }
 .card-mark svg { width: 22px; height: 22px; }
+.card-text { flex: 1; min-width: 0; }
 .card-name {
   font-size: 15px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text);
   letter-spacing: -0.01em;
   line-height: 1.2;
 }
+html[data-theme="dark"] .card-name { color: #fff; }
 .card-ver {
   font-size: 11px;
-  color: #A79FD8;
+  color: var(--text-3);
   margin-top: 3px;
 }
+html[data-theme="dark"] .card-ver { color: #A79FD8; }
+.card-theme { margin-left: auto; flex-shrink: 0; padding: 4px; }
+.card-theme svg { width: 16px; height: 16px; }
 
 /* ── Primary action ──────────────────────────────────────────────────────── */
 #btnLaunch {
   width: 100%;
   background: var(--brand);
   color: #fff;
-  border: none;
+  border: 1px solid transparent;
   border-radius: var(--radius);
   padding: 12px;
   font-family: inherit;
@@ -69,23 +80,29 @@ body {
 #btnLaunch:hover { background: var(--brand-light); }
 #btnLaunch:focus-visible { outline: 2px solid var(--brand-light); outline-offset: 2px; }
 #btnLaunch svg { width: 15px; height: 15px; }
-#btnLaunch.is-on { background: var(--ink-soft); border: 1px solid var(--brand); color: #C9C1F5; }
-#btnLaunch.is-on:hover { background: #302a6b; }
+#btnLaunch.is-on {
+  background: var(--surface-2);
+  border-color: var(--brand);
+  color: var(--text-2);
+}
+#btnLaunch.is-on:hover { background: var(--surface-3); }
+html[data-theme="dark"] #btnLaunch.is-on { background: var(--ink-soft); color: #C9C1F5; }
+html[data-theme="dark"] #btnLaunch.is-on:hover { background: #302A6B; }
 
 #status {
   font-size: 10.5px;
-  color: #8B83BC;
+  color: var(--text-3);
   text-align: center;
   line-height: 1.5;
   min-height: 30px;
   margin: 9px 2px 4px;
 }
-#status.err { color: #FCA5A5; }
-#status.ok  { color: #86EFAC; }
+#status.err { color: var(--err); }
+#status.ok  { color: var(--ok); }
 
 .rule {
   height: 1px;
-  background: var(--ink-line);
+  background: var(--line);
   margin: 4px 0 11px;
 }
 
@@ -93,8 +110,8 @@ body {
 #btnConfig {
   width: 100%;
   background: transparent;
-  color: #B8B0E4;
-  border: 1px solid var(--ink-line);
+  color: var(--text-2);
+  border: 1px solid var(--line-2);
   border-radius: var(--radius);
   padding: 10px;
   font-family: inherit;
@@ -107,9 +124,54 @@ body {
   gap: 8px;
   transition: border-color var(--speed) ease, color var(--speed) ease;
 }
-#btnConfig:hover { border-color: var(--brand-light); color: #fff; }
+#btnConfig:hover { border-color: var(--brand); color: var(--brand); }
+html[data-theme="dark"] #btnConfig:hover { border-color: var(--brand-light); color: #fff; }
 #btnConfig:focus-visible { outline: 2px solid var(--brand-light); outline-offset: 2px; }
 #btnConfig svg { width: 14px; height: 14px; }
+
+/* ── Report a Bug / Support ─────────────────────────────────────────────── */
+/* Two equal tertiary actions under the configuration button. They are quieter
+ * than everything above them on purpose — neither is part of daily use. */
+.foot-links {
+  display: flex;
+  gap: 6px;
+  margin-top: 7px;
+}
+.foot-link {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  color: var(--text-3);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-sm);
+  padding: 7px 6px;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: border-color var(--speed) ease, color var(--speed) ease, background-color var(--speed) ease;
+}
+.foot-link:hover { border-color: var(--brand); color: var(--text); }
+.foot-link:focus-visible { outline: 2px solid var(--brand-light); outline-offset: 2px; }
+.foot-link svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+.foot-link-support { color: #BE185D; border-color: #F9C6DF; }
+.foot-link-support:hover {
+  color: #9D174D;
+  border-color: #EC4899;
+  background: rgba(236, 72, 153, 0.09);
+}
+html[data-theme="dark"] .foot-link-support { color: #E894BC; border-color: #4A2B52; }
+html[data-theme="dark"] .foot-link-support:hover {
+  color: #fff;
+  border-color: #EC4899;
+  background: rgba(236, 72, 153, 0.16);
+}
 
 /* ── Footer summary ─────────────────────────────────────────────────────── */
 .summary {
@@ -119,8 +181,8 @@ body {
 }
 .summary-cell {
   flex: 1;
-  background: #191541;
-  border: 1px solid var(--ink-line);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   padding: 7px 4px;
   text-align: center;
@@ -128,12 +190,13 @@ body {
 .summary-val {
   font-size: 14px;
   font-weight: 600;
-  color: var(--brand-light);
+  color: var(--brand);
   line-height: 1.1;
 }
+html[data-theme="dark"] .summary-val { color: var(--brand-light); }
 .summary-lbl {
   font-size: 9px;
-  color: #7C74AD;
+  color: var(--text-4);
   margin-top: 3px;
   letter-spacing: 0.03em;
   text-transform: uppercase;

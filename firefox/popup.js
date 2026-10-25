@@ -2,9 +2,10 @@
 
 // SN Assignflow — toolbar popup
 //
-// Two jobs: toggle the dispatcher widget on the active ServiceNow tab, and open
-// the configuration page. The counts come straight from storage so they are
-// correct even when the current tab isn't a ServiceNow one.
+// Toggles the dispatcher widget on the active ServiceNow tab and opens the
+// configuration page, with a bug report and the Support panel a click away. The
+// counts come straight from storage so they are correct even when the current
+// tab isn't a ServiceNow one.
 
 document.addEventListener('DOMContentLoaded', () => {
     const btnLaunch   = document.getElementById('btnLaunch');
@@ -12,6 +13,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const launchIcon  = document.getElementById('launchIcon');
     const statusEl    = document.getElementById('status');
     const btnConfig   = document.getElementById('btnConfig');
+    const btnReportBug = document.getElementById('btnReportBug');
+    const btnSupport   = document.getElementById('btnSupport');
+    const btnTheme     = document.getElementById('btnTheme');
     const cardVer     = document.getElementById('cardVer');
     const sumGroups   = document.getElementById('sumGroups');
     const sumAgents   = document.getElementById('sumAgents');
@@ -20,12 +24,64 @@ document.addEventListener('DOMContentLoaded', () => {
     const ICON_PLAY = '<path d="M8 5.2v13.6L19 12z"/>';
     const ICON_STOP = '<rect x="6.5" y="6.5" width="11" height="11" rx="1.6"/>';
 
+    const ICON_SUN =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" ' +
+        'stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/>' +
+        '<path d="M12 2.6v2M12 19.4v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2.6 12h2' +
+        'M19.4 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>';
+    const ICON_MOON =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.4 8.4 0 1 0 10.5 10.5z"/></svg>';
+
     let busy = false;
+    let version = '4.1.1';
+    let theme = 'light';
 
     try {
         const v = chrome.runtime.getManifest().version;
-        if (v) cardVer.textContent = 'v' + v;
+        if (v) { version = v; cardVer.textContent = 'v' + v; }
     } catch (e) { /* leave the fallback in the markup */ }
+
+    // popup.html carries a plain mailto that works on its own. Widening it here
+    // adds the version and the browser, which is most of a useful bug report.
+    btnReportBug.href = snafBugReportMailto(version, navigator.userAgent);
+
+    // ── Theme ─────────────────────────────────────────────────────────────────
+    // The same preference the widget and configuration page use, so a theme
+    // picked anywhere is the theme everywhere.
+    function applyTheme(next) {
+        theme = snafNormaliseTheme(next);
+        document.documentElement.setAttribute('data-theme', theme);
+
+        const label = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+        btnTheme.innerHTML = theme === 'dark' ? ICON_SUN : ICON_MOON;
+        btnTheme.title = label;
+        btnTheme.setAttribute('aria-label', label);
+    }
+
+    async function loadTheme() {
+        try {
+            const store = await chrome.storage.local.get(SNAF_KEY_THEME);
+            applyTheme(store[SNAF_KEY_THEME]);
+        } catch (e) {
+            applyTheme('light');
+        }
+    }
+
+    btnTheme.addEventListener('click', async () => {
+        const next = theme === 'dark' ? 'light' : 'dark';
+        applyTheme(next);
+        const patch = {};
+        patch[SNAF_KEY_THEME] = next;
+        try { await chrome.storage.local.set(patch); } catch (e) { /* repaint already happened */ }
+    });
+
+    chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local' && changes[SNAF_KEY_THEME]) {
+            applyTheme(changes[SNAF_KEY_THEME].newValue);
+        }
+    });
 
     function setStatus(text, cls) {
         statusEl.textContent = text;
@@ -94,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (res.visible) {
             setStatus('Widget is open on this tab. Press Start to dispatch.', '');
         } else {
-            setStatus('Opens the dispatcher on the active ServiceNow tab.', '');
+            setStatus('Opens the dispatcher on this tab only.', '');
         }
     }
 
@@ -132,6 +188,19 @@ document.addEventListener('DOMContentLoaded', () => {
         window.close();
     });
 
+    // The Support panel lives on the configuration page, so the popup asks for
+    // it by name. config.js treats this hash as "open the modal", not as a
+    // section to navigate to.
+    btnSupport.addEventListener('click', async () => {
+        try { await chrome.runtime.sendMessage({ type: 'OPEN_CONFIG', section: 'support' }); }
+        catch (e) { /* the tab still opens in the common case */ }
+        window.close();
+    });
+
+    // Let the mail client take over, then get out of the way.
+    btnReportBug.addEventListener('click', () => setTimeout(() => window.close(), 120));
+
+    loadTheme();
     paintCounts().catch(() => {});
     paintTabState().catch(() => {});
 });

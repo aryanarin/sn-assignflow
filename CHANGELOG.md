@@ -1,5 +1,58 @@
 # Changelog
 
+## 4.1.1
+
+### Fixed
+
+- **The browser's native sign-in dialog no longer appears on the ServiceNow
+  login page.** Keep-alive used to probe the instance as soon as a tab loaded.
+  While signed out, ServiceNow answers that probe with an HTTP Basic challenge,
+  and the browser turns it into its own username/password dialog on top of the
+  login form — looking like the extension wants a second login. Keep-alive and
+  the assignment engine now stay off any page that is asking for credentials,
+  and resume once the instance is signed in.
+
+## 4.1.0
+
+### Added
+
+- **Light and dark themes across the whole extension.** The theme now applies to
+  the toolbar popup and the on-page widget as well as the configuration page.
+  It can be switched from the widget header, the popup, the settings page, or
+  the configuration rail — whichever is closest. The choice is shared, so all
+  four stay in step.
+- A saved widget position is nudged back on-screen after the window is resized
+  or moved to a smaller display.
+
+### Fixed
+
+- **The widget no longer follows you into new tabs.** Showing it is now scoped
+  to the tab it was launched in. Reloading or navigating within that tab keeps
+  it open, but a new ServiceNow tab starts with the widget hidden. Previously
+  its open state lived in shared storage, so every new tab opened with it.
+- The minimised state is scoped the same way, instead of being copied from
+  whichever tab touched it last.
+
+### Changed
+
+- The popup and widget now follow the extension theme instead of staying dark,
+  and the appearance setting says so rather than describing itself as
+  configuration-page-only.
+
+## Unreleased
+
+### Added
+
+- **Report a Bug**, in the navigation rail of the configuration page and in the
+  toolbar popup. Opens a mail draft with the extension version and browser
+  already filled in, and fields for the ServiceNow shell and instance release.
+- **Support panel**, reached from the same two places. Ko-fi for international
+  contributions, UPI with a bundled QR code for India, and a link to star the
+  repository. The QR is shipped with the extension rather than hotlinked, so the
+  panel works offline and reaches no third-party server.
+
+Both mirror the affordances already in SN Commands.
+
 ## 4.0.0
 
 Renamed to **SN Assignflow**, rebuilt for Chrome and Firefox, and re-themed.

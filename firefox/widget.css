@@ -4,22 +4,85 @@
  * so the container resets inherited typography for its whole subtree and each
  * selector carries the ID for specificity.
  *
- * The widget stays ink-dark on every instance: it has to be legible as an
- * overlay tool against both UI16 and the Now Experience shells, and reading as
- * "not part of the page" is the point.
+ * The widget carries its own light and dark palettes rather than inheriting the
+ * page's theme: it has to remain legible and clearly separate from both UI16 and
+ * Now Experience. Light is the default and matches the extension's default
+ * appearance; #snaf-widget[data-theme="dark"] swaps the whole set.
  */
 
 #snaf-widget {
+  /* Light */
+  --w-brand:       #7C3AED;
+  --w-brand-light: #8B5CF6;
+  --w-canvas:      #FFFFFF;
+  --w-chrome:      #F5F3FF;
+  --w-field:       #FFFFFF;
+  --w-line:        #E4E0F5;
+  --w-line-2:      #D3CDEE;
+  --w-text:        #1E1B4B;
+  --w-text-2:      #4A4578;
+  --w-text-3:      #6F6A9B;
+  --w-text-4:      #736D99;
+  --w-hover:       #EDE9FE;
+  --w-accent:      #6D28D9;
+  --w-ok:          #15803D;
+  --w-warn:        #B45309;
+  --w-err:         #B91C1C;
+  --w-warn-bg:     rgba(180, 83, 9, 0.09);
+  --w-warn-text:   #92400E;
+  --w-info-bg:     rgba(124, 58, 237, 0.10);
+  --w-info-text:   #5B21B6;
+  --w-ok-bg:       rgba(21, 128, 61, 0.10);
+  --w-err-bg:      rgba(185, 28, 28, 0.09);
+  --w-log-bg:      #FAF9FF;
+  --w-log-time:    #7B75A1;
+  --w-log-dim:     #736D99;
+  --w-pill:        #FFFFFF;
+  --w-shadow:      0 12px 40px rgba(30, 27, 75, 0.16);
+  --w-shadow-pill: 0 4px 18px rgba(30, 27, 75, 0.12);
+
   position: fixed;
   bottom: 22px;
   right: 22px;
   z-index: 2147483600;
   font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
   font-size: 12px;
-  color: #EDE9FE;
+  color: var(--w-text);
+  color-scheme: light;
   user-select: none;
   text-align: left;
   direction: ltr;
+}
+
+#snaf-widget[data-theme="dark"] {
+  --w-canvas:      #1B1740;
+  --w-chrome:      #211C4C;
+  --w-field:       #171339;
+  --w-line:        #2E2865;
+  --w-line-2:      #3B3479;
+  --w-text:        #F5F3FF;
+  --w-text-2:      #C6C0EC;
+  --w-text-3:      #9E98CE;
+  --w-text-4:      #7C74AD;
+  --w-hover:       #322B72;
+  --w-accent:      #A78BFA;
+  --w-ok:          #6EE7A0;
+  --w-warn:        #FCD34D;
+  --w-err:         #FCA5A5;
+  --w-warn-bg:     rgba(251, 191, 36, 0.10);
+  --w-warn-text:   #FCD34D;
+  --w-info-bg:     rgba(124, 58, 237, 0.14);
+  --w-info-text:   #C4B5FD;
+  --w-ok-bg:       rgba(74, 222, 128, 0.13);
+  --w-err-bg:      rgba(248, 113, 113, 0.13);
+  --w-log-bg:      #171339;
+  --w-log-time:    #5F5892;
+  --w-log-dim:     #7C74AD;
+  --w-pill:        #1E1B4B;
+  --w-shadow:      0 12px 40px rgba(15, 12, 45, 0.55);
+  --w-shadow-pill: 0 4px 18px rgba(15, 12, 45, 0.42);
+
+  color-scheme: dark;
 }
 
 #snaf-widget *,
@@ -55,23 +118,23 @@
   display: none;
   align-items: center;
   gap: 9px;
-  background: #1E1B4B;
-  border: 1px solid #332D6E;
+  background: var(--w-pill);
+  border: 1px solid var(--w-line);
   border-radius: 10px;
   padding: 9px 13px;
   cursor: pointer;
-  box-shadow: 0 4px 18px rgba(15, 12, 45, 0.42);
+  box-shadow: var(--w-shadow-pill);
   min-width: 158px;
   transition: border-color 120ms ease;
 }
 #snaf-pill.is-open { display: flex; }
-#snaf-pill:hover { border-color: #4C4494; }
+#snaf-pill:hover { border-color: var(--w-line-2); }
 
 #snaf-pill-mark {
   width: 18px;
   height: 18px;
   border-radius: 5px;
-  background: #7C3AED;
+  background: var(--w-brand);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -83,19 +146,19 @@
 #snaf-pill-name {
   font-size: 11.5px;
   font-weight: 600;
-  color: #F5F3FF;
+  color: var(--w-text);
   white-space: nowrap;
 }
 #snaf-pill-state {
   font-size: 10px;
-  color: #9E98CE;
+  color: var(--w-text-3);
   margin-top: 1px;
   white-space: nowrap;
 }
 #snaf-pill-timer {
   font-size: 11.5px;
   font-weight: 600;
-  color: #A78BFA;
+  color: var(--w-accent);
   font-variant-numeric: tabular-nums;
   min-width: 34px;
   text-align: right;
@@ -107,10 +170,10 @@
   display: none;
   flex-direction: column;
   width: 320px;
-  background: #1B1740;
-  border: 1px solid #332D6E;
+  background: var(--w-canvas);
+  border: 1px solid var(--w-line);
   border-radius: 12px;
-  box-shadow: 0 12px 40px rgba(15, 12, 45, 0.55);
+  box-shadow: var(--w-shadow);
   overflow: hidden;
 }
 #snaf-panel.is-open { display: flex; }
@@ -120,8 +183,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #211C4C;
-  border-bottom: 1px solid #2E2865;
+  background: var(--w-chrome);
+  border-bottom: 1px solid var(--w-line);
   padding: 11px 12px;
   cursor: grab;
 }
@@ -131,7 +194,7 @@
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  background: #7C3AED;
+  background: var(--w-brand);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -143,7 +206,7 @@
 #snaf-head-name {
   font-size: 12.5px;
   font-weight: 600;
-  color: #F5F3FF;
+  color: var(--w-text);
   display: flex;
   align-items: center;
   gap: 7px;
@@ -152,14 +215,14 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #756FA6;
+  background: var(--w-text-4);
   flex-shrink: 0;
 }
-#snaf-dot.running { background: #4ADE80; }
-#snaf-dot.paused  { background: #FBBF24; }
+#snaf-dot.running { background: var(--w-ok); }
+#snaf-dot.paused  { background: var(--w-warn); }
 #snaf-head-state {
   font-size: 10.5px;
-  color: #9E98CE;
+  color: var(--w-text-3);
   margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
@@ -171,34 +234,34 @@
   width: 24px;
   height: 24px;
   border-radius: 5px;
-  color: #9E98CE;
+  color: var(--w-text-3);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background-color 120ms ease, color 120ms ease;
 }
 .snaf-hbtn svg { width: 14px; height: 14px; }
-.snaf-hbtn:hover { background: #322B72; color: #F5F3FF; }
-.snaf-hbtn.close:hover { background: rgba(248, 113, 113, 0.16); color: #FCA5A5; }
+.snaf-hbtn:hover { background: var(--w-hover); color: var(--w-text); }
+.snaf-hbtn.close:hover { background: var(--w-err-bg); color: var(--w-err); }
 
 /* ── Stats ───────────────────────────────────────────────────────────────── */
 #snaf-stats {
   display: flex;
-  border-bottom: 1px solid #2E2865;
+  border-bottom: 1px solid var(--w-line);
   padding: 11px 12px;
 }
 .snaf-stat { flex: 1; text-align: center; min-width: 0; }
-.snaf-stat + .snaf-stat { border-left: 1px solid #2E2865; }
+.snaf-stat + .snaf-stat { border-left: 1px solid var(--w-line); }
 .snaf-stat-val {
   font-size: 16px;
   font-weight: 600;
-  color: #A78BFA;
+  color: var(--w-accent);
   font-variant-numeric: tabular-nums;
   line-height: 1.15;
 }
 .snaf-stat-lbl {
   font-size: 8.5px;
-  color: #7C74AD;
+  color: var(--w-text-4);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-top: 3px;
@@ -210,27 +273,27 @@
   align-items: center;
   gap: 10px;
   padding: 9px 12px;
-  border-bottom: 1px solid #2E2865;
+  border-bottom: 1px solid var(--w-line);
 }
-#snaf-timer-lbl { font-size: 10px; color: #7C74AD; white-space: nowrap; flex-shrink: 0; }
+#snaf-timer-lbl { font-size: 10px; color: var(--w-text-4); white-space: nowrap; flex-shrink: 0; }
 #snaf-timer-track {
   flex: 1;
   height: 3px;
-  background: #2E2865;
+  background: var(--w-line);
   border-radius: 2px;
   overflow: hidden;
 }
 #snaf-timer-fill {
   height: 100%;
   width: 100%;
-  background: #7C3AED;
+  background: var(--w-brand);
   border-radius: 2px;
   transition: width 1s linear;
 }
 #snaf-timer-val {
   font-size: 11.5px;
   font-weight: 600;
-  color: #A78BFA;
+  color: var(--w-accent);
   font-variant-numeric: tabular-nums;
   min-width: 34px;
   text-align: right;
@@ -243,31 +306,34 @@
   align-items: center;
   gap: 9px;
   padding: 9px 12px;
-  border-bottom: 1px solid #2E2865;
+  border-bottom: 1px solid var(--w-line);
 }
 #snaf-scope-lbl {
   font-size: 10px;
-  color: #7C74AD;
+  color: var(--w-text-4);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   flex-shrink: 0;
 }
 .snaf-select {
-  background: #171339;
-  border: 1px solid #3B3479;
+  background-color: var(--w-field);
+  border: 1px solid var(--w-line-2);
   border-radius: 5px;
-  color: #EDE9FE;
+  color: var(--w-text);
   font-size: 11px;
   padding: 5px 22px 5px 8px;
   outline: none;
   cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%239E98CE'%3E%3Cpath d='M4.2 6.1a.75.75 0 0 1 1.06 0L8 8.84l2.74-2.74a.75.75 0 1 1 1.06 1.06L8.53 12.4a.75.75 0 0 1-1.06 0L4.2 7.16a.75.75 0 0 1 0-1.06z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236F6A9B'%3E%3Cpath d='M4.2 6.1a.75.75 0 0 1 1.06 0L8 8.84l2.74-2.74a.75.75 0 1 1 1.06 1.06L8.53 12.4a.75.75 0 0 1-1.06 0L4.2 7.16a.75.75 0 0 1 0-1.06z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 5px center;
   background-size: 13px;
   transition: border-color 120ms ease;
 }
-.snaf-select:focus { border-color: #7C3AED; }
+#snaf-widget[data-theme="dark"] .snaf-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%239E98CE'%3E%3Cpath d='M4.2 6.1a.75.75 0 0 1 1.06 0L8 8.84l2.74-2.74a.75.75 0 1 1 1.06 1.06L8.53 12.4a.75.75 0 0 1-1.06 0L4.2 7.16a.75.75 0 0 1 0-1.06z'/%3E%3C/svg%3E");
+}
+.snaf-select:focus { border-color: var(--w-brand); }
 #snaf-scope { flex: 1; min-width: 0; }
 
 /* ── Controls ────────────────────────────────────────────────────────────── */
@@ -275,7 +341,7 @@
   display: flex;
   gap: 7px;
   padding: 11px 12px;
-  border-bottom: 1px solid #2E2865;
+  border-bottom: 1px solid var(--w-line);
 }
 .snaf-btn {
   flex: 1;
@@ -291,21 +357,21 @@
   border: 1px solid transparent;
 }
 .snaf-btn svg { width: 12px; height: 12px; }
-.snaf-btn-start { background: #7C3AED; color: #fff; }
-.snaf-btn-start:hover { background: #8B5CF6; }
-.snaf-btn-pause { background: #211C4C; color: #E6E1FB; border-color: #3B3479; }
-.snaf-btn-pause:hover { border-color: #7C3AED; }
-.snaf-btn-stop { background: #211C4C; color: #FCA5A5; border-color: #3B3479; }
-.snaf-btn-stop:hover { border-color: #F87171; background: rgba(248, 113, 113, 0.12); }
+.snaf-btn-start { background: var(--w-brand); color: #fff; }
+.snaf-btn-start:hover { background: var(--w-brand-light); }
+.snaf-btn-pause { background: var(--w-chrome); color: var(--w-text-2); border-color: var(--w-line-2); }
+.snaf-btn-pause:hover { border-color: var(--w-brand); }
+.snaf-btn-stop { background: var(--w-chrome); color: var(--w-err); border-color: var(--w-line-2); }
+.snaf-btn-stop:hover { border-color: var(--w-err); background: var(--w-err-bg); }
 .snaf-btn-icon {
   flex: 0 0 auto;
   width: 32px;
-  background: #211C4C;
-  border-color: #3B3479;
-  color: #9E98CE;
+  background: var(--w-chrome);
+  border-color: var(--w-line-2);
+  color: var(--w-text-3);
   padding: 8px 0;
 }
-.snaf-btn-icon:hover { border-color: #7C3AED; color: #F5F3FF; }
+.snaf-btn-icon:hover { border-color: var(--w-brand); color: var(--w-text); }
 
 /* ── Notices ─────────────────────────────────────────────────────────────── */
 #snaf-notice {
@@ -313,14 +379,14 @@
   align-items: flex-start;
   gap: 8px;
   padding: 9px 12px;
-  border-bottom: 1px solid #2E2865;
+  border-bottom: 1px solid var(--w-line);
   font-size: 10.5px;
   line-height: 1.5;
 }
 #snaf-notice.is-open { display: flex; }
 #snaf-notice svg { width: 13px; height: 13px; margin-top: 1px; }
-#snaf-notice.warn { background: rgba(251, 191, 36, 0.1); color: #FCD34D; }
-#snaf-notice.info { background: rgba(124, 58, 237, 0.14); color: #C4B5FD; }
+#snaf-notice.warn { background: var(--w-warn-bg); color: var(--w-warn-text); }
+#snaf-notice.info { background: var(--w-info-bg); color: var(--w-info-text); }
 
 /* ── Log ─────────────────────────────────────────────────────────────────── */
 #snaf-log {
@@ -329,25 +395,27 @@
   padding: 8px 12px;
   font-family: 'Cascadia Mono', Consolas, 'SF Mono', monospace;
   font-size: 10px;
-  background: #171339;
+  background: var(--w-log-bg);
+  scrollbar-width: thin;
+  scrollbar-color: var(--w-line-2) transparent;
 }
 #snaf-log::-webkit-scrollbar { width: 7px; }
 #snaf-log::-webkit-scrollbar-track { background: transparent; }
 #snaf-log::-webkit-scrollbar-thumb {
-  background: #3B3479;
+  background: var(--w-line-2);
   border-radius: 4px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 
 .snaf-log-line { display: flex; gap: 7px; padding: 1.5px 0; line-height: 1.55; }
-.snaf-log-when { color: #5F5892; flex-shrink: 0; font-variant-numeric: tabular-nums; }
-.snaf-log-msg { flex: 1; min-width: 0; word-break: break-word; color: #C6C0EC; }
-.snaf-log-line.lv-ok   .snaf-log-msg { color: #6EE7A0; }
-.snaf-log-line.lv-warn .snaf-log-msg { color: #FCD34D; }
-.snaf-log-line.lv-err  .snaf-log-msg { color: #FCA5A5; }
-.snaf-log-line.lv-dim  .snaf-log-msg { color: #7C74AD; }
-.snaf-log-line.lv-head .snaf-log-msg { color: #A78BFA; font-weight: 600; }
+.snaf-log-when { color: var(--w-log-time); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.snaf-log-msg { flex: 1; min-width: 0; word-break: break-word; color: var(--w-text-2); }
+.snaf-log-line.lv-ok   .snaf-log-msg { color: var(--w-ok); }
+.snaf-log-line.lv-warn .snaf-log-msg { color: var(--w-warn); }
+.snaf-log-line.lv-err  .snaf-log-msg { color: var(--w-err); }
+.snaf-log-line.lv-dim  .snaf-log-msg { color: var(--w-log-dim); }
+.snaf-log-line.lv-head .snaf-log-msg { color: var(--w-accent); font-weight: 600; }
 .snaf-log-line.indent .snaf-log-msg { padding-left: 11px; }
 
 /* ── Footer ──────────────────────────────────────────────────────────────── */
@@ -357,13 +425,13 @@
   justify-content: space-between;
   gap: 10px;
   padding: 8px 12px;
-  border-top: 1px solid #2E2865;
-  background: #211C4C;
+  border-top: 1px solid var(--w-line);
+  background: var(--w-chrome);
 }
 #snaf-foot-left { display: flex; align-items: center; gap: 6px; min-width: 0; }
 #snaf-host {
   font-size: 9.5px;
-  color: #6D659C;
+  color: var(--w-text-4);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -374,13 +442,19 @@
   align-items: center;
   gap: 4px;
   font-size: 9px;
-  color: #6EE7A0;
+  color: var(--w-ok);
   flex-shrink: 0;
 }
 #snaf-ka.is-on { display: flex; }
 #snaf-ka svg { width: 10px; height: 10px; }
 #snaf-foot-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-#snaf-interval-lbl { font-size: 9.5px; color: #7C74AD; }
+#snaf-interval-lbl { font-size: 9.5px; color: var(--w-text-3); }
 #snaf-interval { font-size: 10px; padding: 3px 20px 3px 6px; }
 
 #snaf-widget.is-dry #snaf-head-mark { background: #B45309; }
+
+@media (prefers-reduced-motion: reduce) {
+  #snaf-widget *,
+  #snaf-widget *::before,
+  #snaf-widget *::after { transition: none !important; }
+}

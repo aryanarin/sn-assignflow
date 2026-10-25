@@ -371,10 +371,15 @@ html[data-theme="dark"] .badge.brand { background: var(--tint); color: var(--bra
   padding: 12px 18px;
   border-top: 1px solid var(--line);
   display: flex;
+  align-items: center;
   gap: 8px;
   justify-content: flex-end;
   flex-shrink: 0;
 }
+
+/* A backdrop that lives in the markup rather than being created on demand needs
+   an off state, and `display: flex` above would otherwise beat [hidden]. */
+.modal-backdrop[hidden] { display: none; }
 
 /* Selectable row used by every selective-export modal */
 .pick {

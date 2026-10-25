@@ -25,13 +25,18 @@ no server.
   writes CSV. There's a full backup of everything under Settings.
 - **Session keep-alive, built in.** Pings a small endpoint on your instance so
   you don't get logged out mid-ticket, and it is forced on whenever the engine
-  is running so a long unattended run can't be cut short by a logout.
+  is running so a long unattended run can't be cut short by a logout. It stays
+  completely off the sign-in page, so it never triggers the browser's own
+  credentials dialog.
 - **Dry run.** Work out and log every assignment without writing anything. The
   honest way to check a new filter before trusting it.
 - **Safety limits.** Cap assignments per cycle and per agent per cycle, and keep
   a broad filter from reassigning work that already has an owner.
 - **A log you can read later.** Recent activity is kept across tabs and
   instances, filterable by level, exportable as text.
+- **Light or dark, everywhere.** One appearance setting is shared by the widget,
+  the toolbar popup and the configuration page, and can be switched from any of
+  them.
 - **Works on your instance, whatever it's called.** ServiceNow's cloud domain is
   built in; on-premise and vanity domains are added by you at runtime. No
   company domain is compiled into the extension.
@@ -85,9 +90,10 @@ The Firefox add-on ID is unchanged, so this installs as an update rather than a
 second add-on, and **your existing groups, agents and round-robin positions are
 kept** — the storage keys from 3.x are read as they are. Nothing to export first.
 
-Two things do change: the widget starts hidden until you launch it (as before)
-but now remembers where you put it, and the group editor requires an explicit
-**Save Changes** instead of writing on every keystroke.
+Two things do change: the widget starts hidden until you launch it (as before),
+remembers where you put it, and is scoped to the tab you launched it in; and the
+group editor requires an explicit **Save Changes** instead of writing on every
+keystroke.
 
 ## Usage
 
@@ -109,11 +115,16 @@ but now remembers where you put it, and the group editor requires an explicit
 
 Launched per tab from the toolbar popup, and it stays where you drag it.
 
+Opening the widget affects that tab only. A reload or an in-tab navigation keeps
+it as you left it; a new ServiceNow tab starts with it hidden, so nothing is
+running or covering the page unless you ask for it there.
+
 | Control | What it does |
 | --- | --- |
 | **Start / Pause / Stop** | Runs a cycle now, then every interval. Pause holds the countdown; Stop clears it. |
 | **Scope** | Restrict a run to one group instead of all active ones. |
 | **Every** | Cycle interval, from 30 seconds to 30 minutes. |
+| **Theme** | Switches the whole extension between light and dark. The popup and configuration page follow immediately. |
 | **Minimise** (`—`) | Collapses to a small pill. Click the pill to expand it again. |
 | **Close** (`✕`) | Hides the widget. Your configuration is untouched. |
 
@@ -186,6 +197,12 @@ It tries `/api/now/session`, then `/now/nav/header`, then `/stats.do`, rotating
 to the next one on a non-OK response because instances differ in what they
 expose. It also pings once when you return to a tab that has been in the
 background, which is exactly where sessions quietly expire.
+
+It makes no request at all while the page is asking for credentials — the
+ServiceNow login screen, an SSO hand-off, or any page with a password field.
+This is deliberate: ServiceNow answers an unauthenticated API call with an HTTP
+Basic challenge, and the browser turns that into its own native sign-in dialog
+on top of the login form. Signing in loads a fresh page, which arms it again.
 
 **Always keep alive while the engine runs** overrides the main toggle whenever a
 dispatcher is running or paused. That is the point of it: an unattended run must
@@ -277,6 +294,28 @@ The one thing a content script cannot do is read `g_ck`: it runs in an isolated
 world, and injecting an inline `<script>` is blocked by the instance's CSP. So
 the token is read in the page's MAIN world through `chrome.scripting`, which CSP
 does not apply to.
+
+## Reporting a bug
+
+There is a **Report a Bug** button in the navigation rail of the configuration
+page and in the toolbar popup. It opens your mail client with the extension
+version and your browser already filled in, plus fields for the ServiceNow shell
+(UI16 or Now Experience) and the instance release. Leaving those in saves a lot
+of guesswork.
+
+The same address works directly:
+**[contact@davagni.eu.org](mailto:contact@davagni.eu.org)**.
+
+## Support this project
+
+SN Assignflow is built and maintained in spare time, with no company behind it.
+The **Support** button — rail foot on the configuration page, and beside Report a
+Bug in the popup — opens a panel with:
+
+- ☕ **International:** [ko-fi.com/ysaryan](https://ko-fi.com/ysaryan)
+- 🇮🇳 **India (UPI):** `ysaryanraj@okaxis`, with a QR code bundled in the
+  extension so the panel works offline and calls no third-party server.
+- ⭐ A link to star the repository, which costs nothing and helps others find it.
 
 ## License
 

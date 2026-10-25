@@ -36,7 +36,8 @@ $shared = @(
   'config.js',
   'icons\icon16.png',
   'icons\icon48.png',
-  'icons\icon128.png'
+  'icons\icon128.png',
+  'icons\upi-qr.png'
 )
 
 New-Item -ItemType Directory -Force -Path (Join-Path $dst 'icons') | Out-Null

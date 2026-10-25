@@ -42,7 +42,10 @@ const SHARED_FILES = [
     'shared.js', 'background.js', 'widget.js', 'widget.css', 'theme.css',
     'popup.html', 'popup.css', 'popup.js',
     'config.html', 'config.css', 'config.js',
-    'icons/icon16.png', 'icons/icon48.png', 'icons/icon128.png'
+    'icons/icon16.png', 'icons/icon48.png', 'icons/icon128.png',
+    // Shown in the Support panel on the configuration page. Bundled rather than
+    // hotlinked so the panel works offline and reaches no third-party server.
+    'icons/upi-qr.png'
 ];
 
 // Which scripts each HTML page loads. Used for element-id resolution.

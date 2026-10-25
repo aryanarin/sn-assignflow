@@ -105,6 +105,36 @@ body { overflow: hidden; }
 .rail-theme svg { width: 14px; height: 14px; }
 .rail-version { font-size: 10px; color: #6D659C; text-align: center; }
 
+/* Report a Bug / Support. Same shape as the theme button so the rail foot reads
+   as one group; Support carries a warm accent because it is the one ask here. */
+.rail-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--radius-sm);
+  color: #A9A2D6;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 7px 10px;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  transition: border-color var(--speed) ease, color var(--speed) ease, background-color var(--speed) ease;
+}
+.rail-link:hover { border-color: var(--brand-light); color: #fff; }
+.rail-link:focus-visible { outline: 2px solid var(--brand-light); outline-offset: 1px; }
+.rail-link svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+.rail-link-support { color: #F0A9C8; border-color: #4A2B52; }
+.rail-link-support:hover {
+  color: #fff;
+  border-color: #EC4899;
+  background: rgba(236, 72, 153, 0.14);
+}
+
 /* ── Content region ──────────────────────────────────────────────────────── */
 .main {
   flex: 1;
@@ -607,3 +637,50 @@ html[data-theme="dark"] .callout svg { color: var(--brand-light); }
   white-space: nowrap;
 }
 .domains-empty { font-size: 11.5px; color: var(--text-4); padding: 2px 0; }
+
+/* ── Support modal ───────────────────────────────────────────────────────── */
+/* Two equal columns, because neither payment route is the recommended one — it
+   depends entirely on where the person is. The QR card keeps a white plate in
+   both themes so a scanner has the contrast it needs. */
+.support-modal { width: 600px; }
+.support-modal .modal-body { display: flex; flex-direction: column; gap: 16px; }
+
+.support-cols { display: flex; align-items: stretch; gap: 16px; }
+.support-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.support-col-divider { width: 1px; background: var(--line); flex-shrink: 0; }
+.support-col-title { font-size: 12.5px; font-weight: 600; }
+.support-col-desc { font-size: 11px; color: var(--text-4); line-height: 1.55; }
+.support-cta { align-self: flex-start; margin-top: auto; text-decoration: none; }
+
+.support-qr-card {
+  align-self: flex-start;
+  background: #fff;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  padding: 8px;
+}
+.support-qr { width: 142px; height: 142px; display: block; border-radius: 4px; }
+
+.support-upi-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 6px 9px;
+}
+.support-upi-id { font-family: var(--mono); font-size: 11.5px; flex: 1; word-break: break-all; }
+
+.support-more {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 15px;
+}
+
+@media (max-width: 620px) {
+  .support-cols { flex-direction: column; }
+  .support-col-divider { display: none; }
+}
