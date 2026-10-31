@@ -41,19 +41,18 @@ Firefox only:
 ```jsonc
 "browser_specific_settings": {
   "gecko": {
-    "id": "assignflow@arinraj09",
+    "id": "sn-assignflow@arinraj09",
     "strict_min_version": "140.0",
     "data_collection_permissions": { "required": ["none"] }
   }
 }
 ```
 
-The ID is **carried over unchanged from AssignFlow 3.2.0**. That is deliberate:
-it makes this an update to the existing add-on rather than a second one, so
-users keep the configuration already in their storage. It is also why the version
-continues the `4.x` line rather than restarting at `1.0.0` — addons.mozilla.org
-requires a strictly increasing version for a given add-on ID, and `1.0.0` would
-be rejected as older than `3.2.0`.
+The ID is **`sn-assignflow@arinraj09`**. Earlier 4.x builds used
+`assignflow@arinraj09`; AMO rejected that upload as a duplicate because the ID
+was already registered to an add-on submitted during testing. This is therefore
+a new AMO listing. Keep this ID unchanged for all future uploads so updates keep
+going to the same listing; the version continues the `4.x` line.
 
 `data_collection_permissions: ["none"]` is required by recent AMO submissions and
 is accurate: nothing is collected.

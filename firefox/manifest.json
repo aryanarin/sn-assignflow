@@ -30,7 +30,7 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "assignflow@arinraj09",
+      "id": "sn-assignflow@arinraj09",
       "strict_min_version": "140.0",
       "data_collection_permissions": {
         "required": [

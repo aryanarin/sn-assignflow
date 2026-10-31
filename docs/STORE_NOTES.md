@@ -68,13 +68,14 @@ held only in `chrome.storage.local`, and is deleted by
 `browser_specific_settings.gecko.data_collection_permissions.required` is set to
 `["none"]`, which recent AMO submissions require.
 
-The add-on ID `assignflow@arinraj09` is unchanged from version 3.2.0, so this is
-submitted as an **update to the existing listing**, not a new one. The version
-must therefore stay strictly greater than `3.2.0`.
+The add-on ID is `sn-assignflow@arinraj09`. Earlier builds used
+`assignflow@arinraj09`, which AMO rejected as a duplicate because that ID was
+already registered to an add-on submitted during testing. This is therefore a
+**new listing** and will not auto-update the test add-on.
 
-If the listing is renamed from *AssignFlow* to *SN Assignflow*, note in the
-version notes that it is a rename and not a new add-on, so reviewers do not treat
-it as a duplicate submission.
+Keep this ID unchanged for every future upload so releases continue the same
+listing. If the listing is renamed later, note the rename in the version notes so
+reviewers do not treat it as a duplicate submission.
 
 ## Testing instructions for reviewers
 
@@ -100,14 +101,23 @@ not have. Offer this in the notes field:
 
 ## Screenshot list
 
-1. Toolbar popup with the launch button and counters.
-2. Assignment Groups: the group editor with the agent rotation and the user-ID
-   suggestion dropdown open.
-3. Agents: the global user list showing resolved and unresolved `sys_id`s.
-4. Rules: dry run and the per-cycle limits.
-5. The widget running on a ServiceNow page, log visible.
-6. Logs section with the cycle history.
+All screenshots are 1280×800, 24-bit PNG without transparency, captured from a
+fictional demo instance (`helpdesk.acme.test`) with invented tickets and staff.
 
-Use a developer instance with demo data for every screenshot. Do not screenshot a
+1. `screenshot-config-light.png` — Assignment Groups: the group editor with the
+   agent rotation and query.
+2. `screenshot-rules-dark.png` — Rules: dry run, safety switches and per-cycle
+   limits.
+3. `screenshot-agents-light.png` — Agents: the global directory with resolved
+   and pending `sys_id`s.
+4. `screenshot-widget-light.png` — The widget running on a ticket list, with the
+   live log.
+5. `screenshot-widget-dark.png` — The same widget in dark theme.
+6. `screenshot-logs-dark.png` — Logs: cycle history across a session.
+7. `screenshot-settings-light.png` — Settings: session keep-alive and backups.
+8. `screenshot-about-dark.png` — About: engine location, instances and storage
+   use.
+
+Use a demo or fictional instance for every screenshot. Do not screenshot a
 production instance — real ticket numbers, staff names and `sys_id`s would be
 published with the listing.
